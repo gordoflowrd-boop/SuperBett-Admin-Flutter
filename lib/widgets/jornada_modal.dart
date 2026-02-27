@@ -16,9 +16,7 @@ class JornadaModal extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text("Estado: ${jornada.estado}"),
-          const SizedBox(height: 10),
-          Text("Fecha: ${jornada.fecha ?? "-"}"),
+          Text("Estado: ${jornada.estado ?? '-'}"),
         ],
       ),
       actions: [
