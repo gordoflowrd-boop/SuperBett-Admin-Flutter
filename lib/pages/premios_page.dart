@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/jornada.dart';
 import '../services/premios_service.dart';
+import '../layout/app_layout.dart';
 import '../widgets/jornada_modal.dart';
-import '../widgets/app_layout.dart';
 
 class PremiosPage extends StatefulWidget {
   const PremiosPage({super.key});
@@ -26,7 +26,9 @@ class _PremiosPageState extends State<PremiosPage> {
     setState(() => loading = true);
     try {
       jornadas = await PremiosService.obtenerJornadas(fecha);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Error cargando jornadas: $e");
+    }
     setState(() => loading = false);
   }
 
@@ -50,33 +52,41 @@ class _PremiosPageState extends State<PremiosPage> {
                   child: ElevatedButton(
                     onPressed: () async {
                       await PremiosService.generar(fecha);
-                      cargar();
+                      await cargar();
                     },
                     child: const Text("Generar Jornadas"),
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: jornadas.length,
-                    itemBuilder: (context, index) {
-                      final j = jornadas[index];
-                      return ListTile(
-                        title: Text(j.loteria ?? "-"),
-                        subtitle: Text("Estado: ${j.estado}"),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () async {
-                            await showDialog(
-                              context: context,
-                              builder: (_) =>
-                                  JornadaModal(jornada: j),
+                  child: jornadas.isEmpty
+                      ? const Center(
+                          child: Text("No hay jornadas disponibles"),
+                        )
+                      : ListView.builder(
+                          itemCount: jornadas.length,
+                          itemBuilder: (context, index) {
+                            final j = jornadas[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              child: ListTile(
+                                title: Text(j.loteria ?? "-"),
+                                subtitle: Text("Estado: ${j.estado}"),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () async {
+                                    await showDialog(
+                                      context: context,
+                                      builder: (_) =>
+                                          JornadaModal(jornada: j),
+                                    );
+                                    await cargar();
+                                  },
+                                ),
+                              ),
                             );
-                            cargar();
                           },
                         ),
-                      );
-                    },
-                  ),
                 ),
               ],
             ),
