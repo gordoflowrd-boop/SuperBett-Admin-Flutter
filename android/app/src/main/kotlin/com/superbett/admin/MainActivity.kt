@@ -1,4 +1,4 @@
-package com.example.myapp
+package com.superbett.admin
 
 import io.flutter.embedding.android.FlutterActivity
 
