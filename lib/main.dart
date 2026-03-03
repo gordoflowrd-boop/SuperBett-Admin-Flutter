@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'pages/login_page.dart';
 import 'pages/menu_page.dart';
 import 'pages/bancas_page.dart';
@@ -25,10 +26,10 @@ class SuperBettApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/':        (context) => const LoginPage(),
-        '/login':   (context) => const LoginPage(),
-        '/menu':    (context) => const MenuPage(),
-        '/bancas':  (context) => const BancasPage(),
+        '/': (context) => const LoginPage(),
+        '/login': (context) => const LoginPage(),
+        '/menu': (context) => const MenuPage(),
+        '/bancas': (context) => const BancasPage(),
         '/premios': (context) => const PremiosPage(),
       },
     );
