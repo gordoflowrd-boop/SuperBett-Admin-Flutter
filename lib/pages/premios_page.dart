@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/jornada.dart';
 import '../services/premios_service.dart';
 import '../widgets/jornada_modal.dart';
-
-// ─────────────────────────────────────────────────────────
-// Si tu proyecto tiene AppLayout, reemplaza _AppShell por él.
-// La estructura aquí es autocontenida para que funcione sola.
-// ─────────────────────────────────────────────────────────
+import '../layout/app_layout.dart'; // Importamos el layout
 
 class PremiosPage extends StatefulWidget {
   const PremiosPage({super.key});
@@ -36,6 +32,15 @@ class _PremiosPageState extends State<PremiosPage> {
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
     }
+  }
+
+  // Lógica de navegación igual a Bancas
+  void _onSelect(int i) {
+    const rutas = [
+      '/menu', '/bancas', '/premios', '/reportes',
+      '/usuarios', '/limites', '/configuracion',
+    ];
+    if (rutas[i] != '/premios') Navigator.pushReplacementNamed(context, rutas[i]);
   }
 
   Future<void> _generar() async {
@@ -79,7 +84,6 @@ class _PremiosPageState extends State<PremiosPage> {
     return "${hh % 12 == 0 ? 12 : hh % 12}:${p[1].padLeft(2,'0')} ${hh >= 12 ? 'PM' : 'AM'}";
   }
 
-  // ── Badge de estado ─────────────────────────────────
   Widget _badge(String estado) {
     late Color bg, fg;
     switch (estado) {
@@ -94,7 +98,6 @@ class _PremiosPageState extends State<PremiosPage> {
       child: Text(estado, style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: 11)));
   }
 
-  // ── Fila de la tabla ────────────────────────────────
   Widget _fila(Jornada j) {
     final premioListo = j.q1 != null && j.q1!.isNotEmpty;
     return Card(
@@ -106,7 +109,6 @@ class _PremiosPageState extends State<PremiosPage> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(children: [
-          // Lotería
           Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(j.loteria ?? "-",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -118,7 +120,6 @@ class _PremiosPageState extends State<PremiosPage> {
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
             ]),
           ])),
-          // Premios Q1 Q2 Q3
           Expanded(flex: 2, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             _qChip("Q1", j.q1),
             const SizedBox(width: 3),
@@ -127,10 +128,8 @@ class _PremiosPageState extends State<PremiosPage> {
             _qChip("Q3", j.q3),
           ])),
           const SizedBox(width: 8),
-          // Estado
           _badge(j.estado),
           const SizedBox(width: 8),
-          // Botón editar
           InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () async {
@@ -177,7 +176,6 @@ class _PremiosPageState extends State<PremiosPage> {
     ]);
   }
 
-  // ── Encabezado tabla ────────────────────────────────
   Widget _encabezado() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: Row(children: [
@@ -196,31 +194,49 @@ class _PremiosPageState extends State<PremiosPage> {
     ]),
   );
 
+  Widget _resumenChip(String label, String val, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withOpacity(0.3))),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(val, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 14)),
+      const SizedBox(width: 4),
+      Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w600)),
+    ]));
+
   @override
   Widget build(BuildContext context) {
-    // Resumen
     final total      = _jornadas.length;
     final abiertas   = _jornadas.where((j) => j.estado == 'abierto').length;
     final cerradas   = _jornadas.where((j) => j.estado == 'cerrado').length;
     final conPremio  = _jornadas.where((j) => j.q1 != null && j.q1!.isNotEmpty).length;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Premios y Jornadas"),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _cargar, tooltip: "Recargar"),
-        ],
-      ),
-      body: Column(children: [
+    // USAMOS APPLAYOUT PARA TENER EL MENÚ LATERAL
+    return AppLayout(
+      selectedIndex: 2, // Índice de Premios
+      onItemSelected: _onSelect,
+      child: Column(children: [
+        // ── Header (Similar a Bancas pero con controles de Premios)
+        Container(
+          color: const Color(0xFF1A237E),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Row(children: [
+            // Botón de Volver (Flecha)
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pushReplacementNamed(context, '/menu'),
+            ),
+            const Expanded(child: Text("Premios y Jornadas",
+              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold))),
+            IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _cargar),
+          ]),
+        ),
+
         // ── Barra fecha + generar
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: Row(children: [
-            // Fecha selector
             Expanded(child: GestureDetector(
               onTap: _pickFecha,
               child: Container(
@@ -237,7 +253,6 @@ class _PremiosPageState extends State<PremiosPage> {
               ),
             )),
             const SizedBox(width: 8),
-            // Botón Hoy
             TextButton(
               onPressed: () { setState(() => _fecha = DateTime.now()); _cargar(); },
               style: TextButton.styleFrom(foregroundColor: Colors.white,
@@ -246,7 +261,6 @@ class _PremiosPageState extends State<PremiosPage> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               child: const Text("Hoy", style: TextStyle(fontWeight: FontWeight.bold))),
             const SizedBox(width: 8),
-            // Botón Generar
             ElevatedButton.icon(
               onPressed: _generar,
               icon: const Icon(Icons.add, size: 17),
@@ -276,7 +290,6 @@ class _PremiosPageState extends State<PremiosPage> {
             ]),
           ),
 
-        // ── Tabla
         if (!_loading && _jornadas.isNotEmpty) _encabezado(),
 
         Expanded(child: _loading
@@ -295,16 +308,6 @@ class _PremiosPageState extends State<PremiosPage> {
       ]),
     );
   }
-
-  Widget _resumenChip(String label, String val, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withOpacity(0.3))),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Text(val, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 14)),
-      const SizedBox(width: 4),
-      Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w600)),
-    ]));
 
   Widget _errorView() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
     const Icon(Icons.error_outline, color: Colors.red, size: 48),
