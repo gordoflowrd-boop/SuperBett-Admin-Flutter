@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/jornada.dart';
 import '../services/premios_service.dart';
 import '../widgets/jornada_modal.dart';
-import '../layout/app_layout.dart'; // Importamos el layout
+import '../layout/app_layout.dart';
 
 class PremiosPage extends StatefulWidget {
   const PremiosPage({super.key});
@@ -34,7 +34,6 @@ class _PremiosPageState extends State<PremiosPage> {
     }
   }
 
-  // Lógica de navegación igual a Bancas
   void _onSelect(int i) {
     const rutas = [
       '/menu', '/bancas', '/premios', '/reportes',
@@ -211,64 +210,66 @@ class _PremiosPageState extends State<PremiosPage> {
     final cerradas   = _jornadas.where((j) => j.estado == 'cerrado').length;
     final conPremio  = _jornadas.where((j) => j.q1 != null && j.q1!.isNotEmpty).length;
 
-    // USAMOS APPLAYOUT PARA TENER EL MENÚ LATERAL
     return AppLayout(
-      selectedIndex: 2, // Índice de Premios
+      selectedIndex: 2,
       onItemSelected: _onSelect,
       child: Column(children: [
-        // ── Header (Similar a Bancas pero con controles de Premios)
+        // ── Navbar Unificado (Sin botón de retorno) ──
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Row(children: [
-            // Botón de Volver (Flecha)
-            IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pushReplacementNamed(context, '/menu'),
-            ),
             const Expanded(child: Text("Premios y Jornadas",
               style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold))),
             IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _cargar),
           ]),
         ),
 
-        // ── Barra fecha + generar
+        // ── Barra fecha (Color normal, más pequeña y separada) ──
         Container(
-          color: const Color(0xFF1A237E),
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.grey.shade200))
+          ),
           child: Row(children: [
-            Expanded(child: GestureDetector(
+            // Fecha selector con color normal (Gris/Blanco)
+            GestureDetector(
               onTap: _pickFecha,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
+                  color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withOpacity(0.3))),
-                child: Row(children: [
-                  const Icon(Icons.calendar_today, color: Colors.white, size: 17),
+                  border: Border.all(color: Colors.grey.shade300)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.calendar_today, color: Colors.grey.shade700, size: 15),
                   const SizedBox(width: 8),
-                  Text(_fechaStr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(_fechaStr, style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.bold, fontSize: 13)),
                 ]),
               ),
-            )),
+            ),
             const SizedBox(width: 8),
             TextButton(
               onPressed: () { setState(() => _fecha = DateTime.now()); _cargar(); },
-              style: TextButton.styleFrom(foregroundColor: Colors.white,
-                  backgroundColor: Colors.white.withOpacity(0.15),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey.shade700,
+                  backgroundColor: Colors.grey.shade200,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text("Hoy", style: TextStyle(fontWeight: FontWeight.bold))),
-            const SizedBox(width: 8),
+              child: const Text("Hoy", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+            const Spacer(),
+            // Botón Generar (Mantiene su color para destacar acción)
             ElevatedButton.icon(
               onPressed: _generar,
-              icon: const Icon(Icons.add, size: 17),
+              icon: const Icon(Icons.add, size: 16),
               label: const Text("Generar", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007BFF),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0)),
           ]),
