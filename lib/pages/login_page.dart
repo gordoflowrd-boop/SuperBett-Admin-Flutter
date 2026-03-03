@@ -99,145 +99,150 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width > 600;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
       body: SafeArea(
-        child: Column(children: [
-          // ── Franja superior con logo
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(0, 40, 0, 32),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
-              boxShadow: [BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 4))],
-            ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
             child: Column(children: [
-              // Ícono
+              // ── Franja superior con logo
               Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A237E),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [BoxShadow(color: Color(0x331A237E), blurRadius: 20, offset: Offset(0, 8))],
-                ),
-                child: const Center(child: Text("SB",
-                  style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 1))),
-              ),
-              const SizedBox(height: 14),
-              const Text("SuperBett",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900,
-                    color: Color(0xFF1A237E), letterSpacing: 0.5)),
-              const SizedBox(height: 2),
-              Text("Panel Administrativo",
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade500, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
-            ]),
-          ),
-
-          // ── Formulario
-          Expanded(child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-            child: AnimatedBuilder(
-              animation: _shakeAnim,
-              builder: (_, child) => Transform.translate(
-                offset: Offset(_hasError ? _shakeAnim.value : 0, 0),
-                child: child,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(28),
+                width: double.infinity,
+                padding: EdgeInsets.fromLTRB(0, isWide ? 28 : 40, 0, isWide ? 24 : 32),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [BoxShadow(color: Color(0x0C000000), blurRadius: 24, offset: Offset(0, 8))],
+                  borderRadius: BorderRadius.vertical(
+                    bottom: const Radius.circular(32),
+                    top: isWide ? const Radius.circular(24) : Radius.zero,
+                  ),
+                  boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 4))],
                 ),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text("Iniciar sesión",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1A1A2E))),
-                  const SizedBox(height: 4),
-                  Text("Ingresa tus credenciales para continuar",
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-                  const SizedBox(height: 28),
-
-                  // Campo usuario
-                  _label("Usuario"),
-                  const SizedBox(height: 6),
-                  _campo(
-                    controller: _userCtrl,
-                    focusNode: _userFocus,
-                    hint: "nombre_usuario",
-                    icon: Icons.person_outline_rounded,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _passFocus.requestFocus(),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Campo contraseña
-                  _label("Contraseña"),
-                  const SizedBox(height: 6),
-                  _campo(
-                    controller: _passCtrl,
-                    focusNode: _passFocus,
-                    hint: "••••••••",
-                    icon: Icons.lock_outline_rounded,
-                    obscure: !_showPass,
-                    suffix: IconButton(
-                      onPressed: () => setState(() => _showPass = !_showPass),
-                      icon: Icon(_showPass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: Colors.grey.shade400, size: 20),
+                child: Column(children: [
+                  Container(
+                    width: 72, height: 72,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A237E),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: const [BoxShadow(color: Color(0x331A237E), blurRadius: 20, offset: Offset(0, 8))],
                     ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _loading ? null : _login(),
+                    child: const Center(child: Text("SB",
+                      style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 1))),
                   ),
-                  const SizedBox(height: 28),
-
-                  // Botón ingresar
-                  SizedBox(width: double.infinity, height: 52,
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A237E),
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFF9FA8DA),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: _loading
-                        ? const SizedBox(width: 22, height: 22,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                        : const Text("Ingresar",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                    )),
-
-                  // Mensaje error
-                  AnimatedSize(duration: const Duration(milliseconds: 200),
-                    child: _msg.isEmpty ? const SizedBox.shrink()
-                      : Container(
-                          margin: const EdgeInsets.only(top: 16),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF0F0),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFFFCDD2)),
-                          ),
-                          child: Row(children: [
-                            const Icon(Icons.error_outline_rounded, color: Color(0xFFE53935), size: 18),
-                            const SizedBox(width: 10),
-                            Expanded(child: Text(_msg,
-                              style: const TextStyle(color: Color(0xFFB71C1C), fontSize: 13, fontWeight: FontWeight.w500))),
-                          ]),
-                        )),
+                  const SizedBox(height: 14),
+                  const Text("SuperBett",
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900,
+                        color: Color(0xFF1A237E), letterSpacing: 0.5)),
+                  const SizedBox(height: 2),
+                  Text("Panel Administrativo",
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
                 ]),
               ),
-            ),
-          )),
 
-          // ── Footer
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Text("© 2025 SuperBett. Acceso restringido.",
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+              // ── Formulario
+              Expanded(child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                child: AnimatedBuilder(
+                  animation: _shakeAnim,
+                  builder: (_, child) => Transform.translate(
+                    offset: Offset(_hasError ? _shakeAnim.value : 0, 0),
+                    child: child,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: const [BoxShadow(color: Color(0x0C000000), blurRadius: 24, offset: Offset(0, 8))],
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text("Iniciar sesión",
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1A1A2E))),
+                      const SizedBox(height: 4),
+                      Text("Ingresa tus credenciales para continuar",
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+                      const SizedBox(height: 28),
+
+                      _label("Usuario"),
+                      const SizedBox(height: 6),
+                      _campo(
+                        controller: _userCtrl,
+                        focusNode: _userFocus,
+                        hint: "nombre_usuario",
+                        icon: Icons.person_outline_rounded,
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) => _passFocus.requestFocus(),
+                      ),
+                      const SizedBox(height: 18),
+
+                      _label("Contraseña"),
+                      const SizedBox(height: 6),
+                      _campo(
+                        controller: _passCtrl,
+                        focusNode: _passFocus,
+                        hint: "••••••••",
+                        icon: Icons.lock_outline_rounded,
+                        obscure: !_showPass,
+                        suffix: IconButton(
+                          onPressed: () => setState(() => _showPass = !_showPass),
+                          icon: Icon(_showPass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              color: Colors.grey.shade400, size: 20),
+                        ),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _loading ? null : _login(),
+                      ),
+                      const SizedBox(height: 28),
+
+                      SizedBox(width: double.infinity, height: 52,
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A237E),
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: const Color(0xFF9FA8DA),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: _loading
+                            ? const SizedBox(width: 22, height: 22,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : const Text("Ingresar",
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                        )),
+
+                      AnimatedSize(duration: const Duration(milliseconds: 200),
+                        child: _msg.isEmpty ? const SizedBox.shrink()
+                          : Container(
+                              margin: const EdgeInsets.only(top: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF0F0),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFFFCDD2)),
+                              ),
+                              child: Row(children: [
+                                const Icon(Icons.error_outline_rounded, color: Color(0xFFE53935), size: 18),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(_msg,
+                                  style: const TextStyle(color: Color(0xFFB71C1C), fontSize: 13, fontWeight: FontWeight.w500))),
+                              ]),
+                            )),
+                    ]),
+                  ),
+                ),
+              )),
+
+              // ── Footer
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text("© 2025 SuperBett. Acceso restringido.",
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+              ),
+            ]),
           ),
-        ]),
+        ),
       ),
     );
   }
