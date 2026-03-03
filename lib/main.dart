@@ -25,15 +25,12 @@ class SuperBettApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/':              (context) => const LoginPage(),
-        '/login':         (context) => const LoginPage(),
-        '/menu':          (context) => const MenuPage(),
-        '/bancas':        (context) => const BancasPage(),
-        '/premios':       (context) => const PremiosPage(),
-        // Agrega las páginas cuando las tengas listas:
-        // '/reportes':      (context) => const ReportesPage(),
-        // '/usuarios':      (context) => const UsuariosPage(),
-        // '/limites':       (context) => const LimitesPage(),
-        // '/configuracion': (context) => const ConfiguracionPage(),
+        '/':        (context) => const LoginPage(),
+        '/login':   (context) => const LoginPage(),
+        '/menu':    (context) => const MenuPage(),
+        '/bancas':  (context) => const BancasPage(),
+        '/premios': (context) => const PremiosPage(),
       },
     );
+  }
+}
