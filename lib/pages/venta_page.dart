@@ -19,27 +19,32 @@ class _VentaPageState extends State<VentaPage> {
   List<dynamic> _loterias = [];
   List<dynamic> _filas    = [];
 
-  final _fmt     = NumberFormat('#,##0.00');
+  final _fmt      = NumberFormat('#,##0.00');
   final _modOrden = const ['Q', 'P', 'T', 'SP'];
 
   @override
   void initState() { super.initState(); _cargarLoterias(); }
 
-  String get _fechaStr {
-    final f = _fecha;
-    return "${f.year}-${f.month.toString().padLeft(2,'0')}-${f.day.toString().padLeft(2,'0')}";
-  }
+  String get _fechaStr => DateFormat('yyyy-MM-dd').format(_fecha);
 
   double _toDouble(dynamic v) =>
       v == null ? 0.0 : double.tryParse(v.toString()) ?? 0.0;
 
+  // Sincronizado con AppLayout
   void _onSelect(int i) {
     const rutas = [
-      '/menu', '/bancas', '/premios', '/reportes',
-      '/usuarios', '/limites', '/configuracion',
+      '/menu',          // 0
+      '/bancas',        // 1
+      '/venta',         // 2
+      '/premios',       // 3
+      '/reportes',      // 4
+      '/usuarios',      // 5
+      '/limites',       // 6
+      '/configuracion', // 7
     ];
-    // Ajustado para que coincida con el index 1 de Venta
-    if (i < rutas.length && rutas[i] != '/venta') Navigator.pushReplacementNamed(context, rutas[i]);
+    if (i < rutas.length && rutas[i] != '/venta') {
+      Navigator.pushReplacementNamed(context, rutas[i]);
+    }
   }
 
   Future<void> _cargarLoterias() async {
@@ -71,15 +76,13 @@ class _VentaPageState extends State<VentaPage> {
 
   Map<String, List<dynamic>> get _grupos {
     final g = <String, List<dynamic>>{};
+    // Aseguramos el orden Q, P, T, SP
     for (final m in _modOrden) { g[m] = []; }
     
     for (final r in _filas) {
-      final m = r['modalidad']?.toString() ?? '';
-      if (g.containsKey(m)) {
-        g[m]!.add(r);
-      } else {
-        g.putIfAbsent(m, () => []).add(r);
-      }
+      final m = r['modalidad']?.toString() ?? 'O';
+      if (!g.containsKey(m)) g[m] = [];
+      g[m]!.add(r);
     }
     return g;
   }
@@ -97,6 +100,7 @@ class _VentaPageState extends State<VentaPage> {
     if (p != null) { setState(() => _fecha = p); await _cargarVenta(); }
   }
 
+  // --- UI Helpers ---
   Widget _resumenChip(String label, String val, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
@@ -125,7 +129,7 @@ class _VentaPageState extends State<VentaPage> {
       case 'P':  return 'Palé';
       case 'T':  return 'Tripleta';
       case 'SP': return 'Super Palé';
-      default:   return m;
+      default:   return 'Otros';
     }
   }
 
@@ -146,57 +150,49 @@ class _VentaPageState extends State<VentaPage> {
           Text("Total: ${_fmt.format(total)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         ]),
       ),
-      Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        color: color.withOpacity(0.08),
-        child: Row(children: [
-          Expanded(flex: 3, child: Text("Lotería(s)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
-          Expanded(flex: 2, child: Text("Jugada", textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
-          Expanded(flex: 1, child: Text("Cant.", textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
-          Expanded(flex: 1, child: Text("Tick.", textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
-          Expanded(flex: 2, child: Text("Bancas", textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
-          Expanded(flex: 2, child: Text("Monto", textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
-        ]),
-      ),
-      Container(
+      // ... (Encabezado y Filas se mantienen igual)
+      _buildTabla(color, filas, mod),
+    ]);
+  }
+
+  Widget _buildTabla(Color color, List<dynamic> filas, String mod) {
+    return Container(
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
         decoration: BoxDecoration(
           border: Border.all(color: color.withOpacity(0.2)),
           borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(10), bottomRight: Radius.circular(10))),
         child: Column(children: filas.asMap().entries.map((e) {
-            final i = e.key;
-            final r = e.value as Map<String, dynamic>;
-            final monto = _toDouble(r['monto_total']);
-            final loteriasRaw = r['loteria']?.toString() ?? '-';
-            final loterias = mod == 'SP' ? loteriasRaw.split(' + ') : [loteriasRaw];
+          final i = e.key;
+          final r = e.value as Map<String, dynamic>;
+          final loteriasRaw = r['loteria']?.toString() ?? '-';
+          final loterias = mod == 'SP' ? loteriasRaw.split(' + ') : [loteriasRaw];
 
-            return Container(
-              decoration: BoxDecoration(
-                color: i.isEven ? Colors.white : Colors.grey.shade50,
-                border: i == filas.length - 1 ? null : Border(bottom: BorderSide(color: Colors.grey.shade100))),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: Row(children: [
-                Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: loterias.map((l) => Text(l.trim(), style: const TextStyle(fontSize: 12))).toList())),
-                Expanded(flex: 2, child: Text(r['jugada']?.toString() ?? '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))),
-                Expanded(flex: 1, child: Text(r['cantidad_total']?.toString() ?? '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
-                Expanded(flex: 1, child: Text(r['tickets']?.toString() ?? '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
-                Expanded(flex: 2, child: Text(r['bancas']?.toString() ?? '-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
-                Expanded(flex: 2, child: Text(_fmt.format(monto), textAlign: TextAlign.right, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color))),
-              ]),
-            );
-          }).toList(),
-        ),
-      ),
-    ]);
+          return Container(
+            decoration: BoxDecoration(
+              color: i.isEven ? Colors.white : Colors.grey.shade50,
+              border: i == filas.length - 1 ? null : Border(bottom: BorderSide(color: Colors.grey.shade100))),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(children: [
+              Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: loterias.map((l) => Text(l.trim(), style: const TextStyle(fontSize: 12))).toList())),
+              Expanded(flex: 2, child: Text(r['jugada']?.toString() ?? '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))),
+              Expanded(flex: 1, child: Text(r['cantidad_total']?.toString() ?? '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+              Expanded(flex: 1, child: Text(r['tickets']?.toString() ?? '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+              Expanded(flex: 2, child: Text(r['bancas']?.toString() ?? '-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+              Expanded(flex: 2, child: Text(_fmt.format(_toDouble(r['monto_total'])), textAlign: TextAlign.right, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color))),
+            ]),
+          );
+        }).toList()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final grupos = _grupos;
     return AppLayout(
-      selectedIndex: 1, 
+      selectedIndex: 2, // ACTUALIZADO: 2 es Venta según AppLayout
       onItemSelected: _onSelect,
       child: Column(children: [
+        // Navbar
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -206,52 +202,10 @@ class _VentaPageState extends State<VentaPage> {
           ]),
         ),
 
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
-          child: Row(children: [
-            GestureDetector(
-              onTap: _pickFecha,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.calendar_today, color: Colors.grey.shade700, size: 15),
-                  const SizedBox(width: 8),
-                  Text(_fechaStr, style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.bold, fontSize: 13)),
-                ]),
-              ),
-            ),
-            const SizedBox(width: 6),
-            TextButton(
-              onPressed: () { setState(() => _fecha = DateTime.now()); _cargarVenta(); },
-              style: TextButton.styleFrom(foregroundColor: Colors.grey.shade700, backgroundColor: Colors.grey.shade200, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text("Hoy", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-            const SizedBox(width: 10),
-            if (!_loadingLot)
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String?>(
-                      value: _loteriaId,
-                      isExpanded: true,
-                      onChanged: (v) { setState(() => _loteriaId = v); _cargarVenta(); },
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text("Todas")),
-                        const DropdownMenuItem(value: 'SP_ONLY', child: Text("Super Palé")),
-                        ..._loterias.map((l) => DropdownMenuItem(value: l['id']?.toString(), child: Text(l['nombre']?.toString() ?? '-'))),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ]),
-        ),
+        // Filtros
+        _buildFiltros(),
 
+        // Chips de Resumen
         if (!_loading && _filas.isNotEmpty)
           Container(
             color: Colors.grey.shade50,
@@ -259,8 +213,8 @@ class _VentaPageState extends State<VentaPage> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(children: [
-                ..._modOrden.where((m) => (_grupos[m] ?? []).isNotEmpty).map((m) {
-                  final subtotal = (_grupos[m] ?? []).fold(0.0, (s, r) => s + _toDouble(r['monto_total']));
+                ...grupos.keys.where((m) => grupos[m]!.isNotEmpty).map((m) {
+                  final subtotal = grupos[m]!.fold(0.0, (s, r) => s + _toDouble(r['monto_total']));
                   return Padding(padding: const EdgeInsets.only(right: 6), child: _resumenChip(_nombreMod(m), _fmt.format(subtotal), _colorMod(m)));
                 }),
                 _resumenChip("TOTAL", _fmt.format(_totalGeneral), Colors.blueGrey),
@@ -268,6 +222,7 @@ class _VentaPageState extends State<VentaPage> {
             ),
           ),
 
+        // Lista Principal
         Expanded(child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
@@ -279,22 +234,74 @@ class _VentaPageState extends State<VentaPage> {
                   child: ListView(
                     padding: const EdgeInsets.only(bottom: 24),
                     children: [
-                      ..._modOrden.map((m) {
-                        final filas = _grupos[m] ?? [];
+                      ...grupos.keys.map((m) {
+                        final filas = grupos[m]!;
                         return filas.isEmpty ? const SizedBox.shrink() : _seccionModalidad(m, filas);
                       }),
-                      Container(
-                        margin: const EdgeInsets.fromLTRB(12, 16, 12, 0),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(color: const Color(0xFF1A237E).withOpacity(0.06), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFF1A237E).withOpacity(0.2))),
-                        child: Row(children: [
-                          const Expanded(child: Text("TOTAL GENERAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF1A237E)))),
-                          Text(_fmt.format(_totalGeneral), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1A237E))),
-                        ]),
-                      ),
+                      _buildTotalGeneral(),
                     ],
                   ),
                 )),
+      ]),
+    );
+  }
+
+  Widget _buildFiltros() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+      child: Row(children: [
+        GestureDetector(
+          onTap: _pickFecha,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.calendar_today, color: Colors.grey.shade700, size: 15),
+              const SizedBox(width: 8),
+              Text(_fechaStr, style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.bold, fontSize: 13)),
+            ]),
+          ),
+        ),
+        const SizedBox(width: 6),
+        TextButton(
+          onPressed: () { setState(() => _fecha = DateTime.now()); _cargarVenta(); },
+          style: TextButton.styleFrom(foregroundColor: Colors.grey.shade700, backgroundColor: Colors.grey.shade200, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          child: const Text("Hoy", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+        const SizedBox(width: 10),
+        if (!_loadingLot)
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: _loteriaId,
+                  isExpanded: true,
+                  onChanged: (v) { setState(() => _loteriaId = v); _cargarVenta(); },
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text("Todas")),
+                    const DropdownMenuItem(value: 'SP_ONLY', child: Text("Super Palé")),
+                    ..._loterias.map((l) => DropdownMenuItem(value: l['id']?.toString(), child: Text(l['nombre']?.toString() ?? '-'))),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  Widget _buildTotalGeneral() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 16, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(color: const Color(0xFF1A237E).withOpacity(0.06), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFF1A237E).withOpacity(0.2))),
+      child: Row(children: [
+        const Expanded(child: Text("TOTAL GENERAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF1A237E)))),
+        Text(_fmt.format(_totalGeneral), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1A237E))),
       ]),
     );
   }

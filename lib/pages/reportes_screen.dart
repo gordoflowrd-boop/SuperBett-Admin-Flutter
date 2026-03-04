@@ -20,27 +20,33 @@ class _ReportesPageState extends State<ReportesPage> {
   @override
   void initState() { super.initState(); _cargar(); }
 
-  String get _fechaStr {
-    final f = _fecha;
-    return "${f.year}-${f.month.toString().padLeft(2,'0')}-${f.day.toString().padLeft(2,'0')}";
-  }
-
+  String get _fechaStr => DateFormat('yyyy-MM-dd').format(_fecha);
   final _fmt = NumberFormat('#,##0.00');
 
   double _toDouble(dynamic v) =>
       v == null ? 0.0 : double.tryParse(v.toString()) ?? 0.0;
 
+  // --- Totales ---
   double get _totalVenta     => _resumen.fold(0.0, (s, r) => s + _toDouble(r['total_venta']));
   double get _totalComision  => _resumen.fold(0.0, (s, r) => s + _toDouble(r['total_comision']));
   double get _totalPremios   => _resumen.fold(0.0, (s, r) => s + _toDouble(r['total_premios']));
   double get _totalResultado => _resumen.fold(0.0, (s, r) => s + _toDouble(r['resultado']));
 
+  // --- Navegación Sincronizada ---
   void _onSelect(int i) {
     const rutas = [
-      '/menu', '/bancas', '/premios', '/reportes',
-      '/usuarios', '/limites', '/configuracion',
+      '/menu',          // 0
+      '/bancas',        // 1
+      '/venta',         // 2
+      '/premios',       // 3
+      '/reportes',      // 4
+      '/usuarios',      // 5
+      '/limites',       // 6
+      '/configuracion', // 7
     ];
-    if (rutas[i] != '/reportes') Navigator.pushReplacementNamed(context, rutas[i]);
+    if (i < rutas.length && rutas[i] != '/reportes') {
+      Navigator.pushReplacementNamed(context, rutas[i]);
+    }
   }
 
   Future<void> _cargar() async {
@@ -51,7 +57,6 @@ class _ReportesPageState extends State<ReportesPage> {
         setState(() { _resumen = data; _loading = false; });
       } else {
         final data = await ReportesService.obtenerGanadores(_fechaStr);
-        // Filtrar ganadores con premio > 0 una sola vez al cargar
         setState(() { 
           _ganadores = data.where((g) => _toDouble(g['total_ganado']) > 0).toList(); 
           _loading = false; 
@@ -69,7 +74,29 @@ class _ReportesPageState extends State<ReportesPage> {
       firstDate: DateTime(2024),
       lastDate: DateTime.now().add(const Duration(days: 1)),
     );
-    if (p != null) { setState(() => _fecha = p); await _cargar(); }
+    if (p != null) { setState(() => _fecha = p); _cargar(); }
+  }
+
+  // --- Widgets de UI ---
+
+  Widget _tabToggle(String label, String value) {
+    final sel = _tipoVista == value;
+    return GestureDetector(
+      onTap: () {
+        if (_tipoVista != value) {
+          setState(() { _tipoVista = value; _resumen = []; _ganadores = []; });
+          _cargar();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: sel ? const Color(0xFF1A237E) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(label, style: TextStyle(color: sel ? Colors.white : Colors.grey.shade700, fontWeight: FontWeight.bold)),
+      ),
+    );
   }
 
   Widget _resumenChip(String label, String val, Color color) => Container(
@@ -79,300 +106,87 @@ class _ReportesPageState extends State<ReportesPage> {
       borderRadius: BorderRadius.circular(8),
       border: Border.all(color: color.withOpacity(0.3))),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Text(val, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 14)),
+      Text(val, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 13)),
       const SizedBox(width: 4),
-      Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w600)),
+      Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.w600)),
     ]));
 
-  Widget _tabToggle(String label, String value) {
-    final sel = _tipoVista == value;
-    return GestureDetector(
-      onTap: () {
-        if (_tipoVista != value) {
-          setState(() {
-            _tipoVista = value;
-            _resumen   = [];
-            _ganadores = [];
-            _error     = "";
-          });
-          _cargar();
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: sel ? const Color(0xFF1A237E) : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: sel ? const Color(0xFF1A237E) : Colors.grey.shade300)),
-        child: Text(label,
-          style: TextStyle(
-            color: sel ? Colors.white : Colors.grey.shade700,
-            fontWeight: FontWeight.bold, fontSize: 13)),
-      ),
-    );
-  }
-
-  Widget _encabezadoVentas() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    child: Row(children: [
-      const Expanded(flex: 3, child: Text("Banca",
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
-      _thCol("Venta"),
-      _thCol("Comisión"),
-      _thCol("Premios"),
-      _thCol("Resultado"),
-    ]),
-  );
-
-  Widget _thCol(String t) => Expanded(
-    flex: 2,
-    child: Text(t,
-      textAlign: TextAlign.right,
-      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey)));
-
-  Widget _encabezadoGanadores() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    child: Row(children: [
-      const Expanded(flex: 2, child: Text("Ticket",
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
-      const Expanded(flex: 3, child: Text("Banca",
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
-      const Expanded(flex: 3, child: Text("Lotería",
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
-      SizedBox(width: 80, child: Text("Premio",
-          textAlign: TextAlign.right,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
-    ]),
-  );
-
   Widget _filaVenta(Map<String, dynamic> r) {
-    final resultado = _toDouble(r['resultado']);
+    final res = _toDouble(r['resultado']);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: Colors.grey.shade200)),
-      elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.all(12),
         child: Row(children: [
-          Expanded(flex: 3,
-            child: Text(r['banca'] ?? '-',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-          _celdaNum(_fmt.format(_toDouble(r['total_venta'])),   Colors.black87),
-          _celdaNum(_fmt.format(_toDouble(r['total_comision'])), Colors.grey),
-          _celdaNum(_fmt.format(_toDouble(r['total_premios'])),  const Color(0xFFDC3545)),
-          _celdaNum(_fmt.format(resultado),
-              resultado >= 0 ? const Color(0xFF28A745) : const Color(0xFFDC3545),
-              bold: true),
+          Expanded(flex: 3, child: Text(r['banca'] ?? '-', style: const TextStyle(fontWeight: FontWeight.bold))),
+          Expanded(flex: 2, child: Text(_fmt.format(_toDouble(r['total_venta'])), textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text(_fmt.format(res), textAlign: TextAlign.right, 
+            style: TextStyle(color: res >= 0 ? Colors.green : Colors.red, fontWeight: FontWeight.bold))),
         ]),
       ),
     );
   }
 
-  Widget _filaTotal() => Card(
-    margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-    color: const Color(0xFF1A237E).withOpacity(0.06),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-      side: BorderSide(color: const Color(0xFF1A237E).withOpacity(0.2))),
-    elevation: 0,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(children: [
-        const Expanded(flex: 3,
-          child: Text("TOTAL",
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14,
-                color: Color(0xFF1A237E)))),
-        _celdaNum(_fmt.format(_totalVenta),     const Color(0xFF1A237E), bold: true),
-        _celdaNum(_fmt.format(_totalComision),  Colors.grey,             bold: true),
-        _celdaNum(_fmt.format(_totalPremios),   const Color(0xFFDC3545), bold: true),
-        _celdaNum(_fmt.format(_totalResultado),
-            _totalResultado >= 0 ? const Color(0xFF28A745) : const Color(0xFFDC3545),
-            bold: true),
-      ]),
-    ),
-  );
-
-  Widget _celdaNum(String val, Color color, {bool bold = false}) =>
-    Expanded(flex: 2,
-      child: Text(val,
-        textAlign: TextAlign.right,
-        style: TextStyle(color: color, fontSize: 13,
-            fontWeight: bold ? FontWeight.bold : FontWeight.normal)));
-
-  Widget _filaGanador(Map<String, dynamic> g) => Card(
-    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-      side: BorderSide(color: Colors.grey.shade200)),
-    elevation: 1,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(children: [
-        Expanded(flex: 2,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A237E).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(6)),
-            child: Text(g['numero_ticket']?.toString() ?? '-',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13,
-                  color: Color(0xFF1A237E))),
-          ),
-        ),
-        Expanded(flex: 3,
-          child: Text(g['banca'] ?? '-',
-            style: const TextStyle(fontSize: 13))),
-        Expanded(flex: 3,
-          child: Text(g['loteria'] ?? '-',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade700))),
-        SizedBox(width: 80,
-          child: Text(_fmt.format(_toDouble(g['total_ganado'])),
-            textAlign: TextAlign.right,
-            style: const TextStyle(color: Color(0xFF28A745),
-                fontWeight: FontWeight.bold, fontSize: 14))),
-      ]),
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      selectedIndex: 3,
+      selectedIndex: 4, // Reportes es el índice 4
       onItemSelected: _onSelect,
       child: Column(children: [
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Row(children: [
-            const Expanded(child: Text("Reportes Generales",
-              style: TextStyle(color: Colors.white, fontSize: 17,
-                  fontWeight: FontWeight.bold))),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: _cargar),
+            const Expanded(child: Text("Reportes", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+            IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _cargar),
           ]),
         ),
-
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+          padding: const EdgeInsets.all(12),
+          color: Colors.white,
           child: Row(children: [
-            _tabToggle("Ventas",    "ventas"),
-            const SizedBox(width: 6),
+            _tabToggle("Ventas", "ventas"),
+            const SizedBox(width: 8),
             _tabToggle("Ganadores", "ganadores"),
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: _pickFecha,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.calendar_today, color: Colors.grey.shade700, size: 15),
-                  const SizedBox(width: 8),
-                  Text(_fechaStr,
-                    style: TextStyle(color: Colors.grey.shade800,
-                        fontWeight: FontWeight.bold, fontSize: 13)),
-                ]),
-              ),
-            ),
-            const SizedBox(width: 6),
-            TextButton(
-              onPressed: () { setState(() => _fecha = DateTime.now()); _cargar(); },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey.shade700,
-                backgroundColor: Colors.grey.shade200,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text("Hoy",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            ),
             const Spacer(),
-            ElevatedButton.icon(
-              onPressed: _loading ? null : _cargar,
-              icon: const Icon(Icons.search, size: 16),
-              label: const Text("Cargar",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007BFF),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0)),
+            ActionChip(
+              avatar: const Icon(Icons.calendar_today, size: 14),
+              label: Text(_fechaStr),
+              onPressed: _pickFecha,
+            ),
           ]),
         ),
-
         if (!_loading && _tipoVista == "ventas" && _resumen.isNotEmpty)
           Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             color: Colors.grey.shade50,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(children: [
-              _resumenChip("Bancas",    "${_resumen.length}",           Colors.blueGrey),
-              const SizedBox(width: 6),
-              _resumenChip("Venta",     _fmt.format(_totalVenta),       const Color(0xFF1A237E)),
-              const SizedBox(width: 6),
-              _resumenChip("Premios",   _fmt.format(_totalPremios),     const Color(0xFFDC3545)),
-              const SizedBox(width: 6),
-              _resumenChip("Resultado", _fmt.format(_totalResultado),
-                  _totalResultado >= 0 ? const Color(0xFF28A745) : const Color(0xFFDC3545)),
-            ]),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                _resumenChip("VENTA", _fmt.format(_totalVenta), Colors.black87),
+                const SizedBox(width: 6),
+                _resumenChip("NETO", _fmt.format(_totalResultado), _totalResultado >= 0 ? Colors.green : Colors.red),
+              ]),
+            ),
           ),
-
-        if (!_loading && _tipoVista == "ventas"    && _resumen.isNotEmpty)   _encabezadoVentas(),
-        if (!_loading && _tipoVista == "ganadores" && _ganadores.isNotEmpty) _encabezadoGanadores(),
-
-        Expanded(child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error.isNotEmpty
-            ? _errorView()
-            : _tipoVista == "ventas"
-              ? _resumen.isEmpty
-                ? _emptyView()
-                : RefreshIndicator(
-                    onRefresh: _cargar,
-                    child: ListView.builder(
-                      itemCount: _resumen.length + 1,
-                      itemBuilder: (_, i) => i < _resumen.length
-                          ? _filaVenta(_resumen[i] as Map<String, dynamic>)
-                          : _filaTotal(),
-                    ))
-              : _ganadores.isEmpty
-                ? _emptyView()
-                : RefreshIndicator(
-                    onRefresh: _cargar,
-                    child: ListView.builder(
-                      itemCount: _ganadores.length,
-                      itemBuilder: (_, i) => _filaGanador(_ganadores[i] as Map<String, dynamic>),
-                    ))),
+        Expanded(
+          child: _loading 
+            ? const Center(child: CircularProgressIndicator()) 
+            : _error.isNotEmpty 
+              ? Center(child: Text(_error, style: const TextStyle(color: Colors.red)))
+              : ListView.builder(
+                  itemCount: _tipoVista == "ventas" ? _resumen.length : _ganadores.length,
+                  itemBuilder: (_, i) => _tipoVista == "ventas" 
+                    ? _filaVenta(_resumen[i]) 
+                    : ListTile(
+                        title: Text("Ticket: ${_ganadores[i]['numero_ticket']}"),
+                        subtitle: Text("${_ganadores[i]['banca']} - ${_ganadores[i]['loteria']}"),
+                        trailing: Text(_fmt.format(_toDouble(_ganadores[i]['total_ganado'])), 
+                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                      ),
+                ),
+        ),
       ]),
     );
   }
-
-  Widget _errorView() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    const Icon(Icons.error_outline, color: Colors.red, size: 48),
-    const SizedBox(height: 10),
-    Text(_error, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
-    const SizedBox(height: 14),
-    ElevatedButton.icon(onPressed: _cargar,
-      icon: const Icon(Icons.refresh), label: const Text("Reintentar")),
-  ]));
-
-  Widget _emptyView() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    Icon(Icons.bar_chart_outlined, size: 56, color: Colors.grey.shade300),
-    const SizedBox(height: 14),
-    Text("No hay datos para $_fechaStr",
-        style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
-    const SizedBox(height: 6),
-    Text("Selecciona otra fecha o presiona Cargar.",
-        style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
-  ]));
 }

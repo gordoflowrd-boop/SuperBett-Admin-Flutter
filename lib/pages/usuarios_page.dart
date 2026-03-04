@@ -16,12 +16,21 @@ class _UsuariosPageState extends State<UsuariosPage> {
   @override
   void initState() { super.initState(); _cargar(); }
 
+  // Corregido para coincidir exactamente con el orden de AppLayout
   void _onSelect(int i) {
     const rutas = [
-      '/menu', '/bancas', '/premios', '/reportes',
-      '/usuarios', '/limites', '/configuracion',
+      '/menu',          // 0
+      '/bancas',        // 1
+      '/venta',         // 2
+      '/premios',       // 3
+      '/reportes',      // 4
+      '/usuarios',      // 5
+      '/limites',       // 6
+      '/configuracion', // 7
     ];
-    if (rutas[i] != '/usuarios') Navigator.pushReplacementNamed(context, rutas[i]);
+    if (rutas[i] != '/usuarios') {
+      Navigator.pushReplacementNamed(context, rutas[i]);
+    }
   }
 
   Future<void> _cargar() async {
@@ -56,7 +65,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
           style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: 11)));
   }
 
-  // ── Badge estado ───────────────────────────────────
   Widget _badgeEstado(bool? activo) {
     final isActivo = activo == true;
     return Container(
@@ -70,7 +78,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
             fontWeight: FontWeight.bold, fontSize: 11)));
   }
 
-  // ── Chip resumen ───────────────────────────────────
   Widget _resumenChip(String label, String val, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
@@ -83,9 +90,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
       Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w600)),
     ]));
 
-  // ── Fila de usuario ────────────────────────────────
   Widget _filaUsuario(Map<String, dynamic> u) {
-    // Protección contra strings vacíos para el avatar
     final String nombreStr = (u['nombre'] ?? u['email'] ?? '?').toString();
     final String inicial = nombreStr.isNotEmpty ? nombreStr[0].toUpperCase() : '?';
 
@@ -104,29 +109,20 @@ class _UsuariosPageState extends State<UsuariosPage> {
               color: const Color(0xFF1A237E).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10)),
             child: Center(
-              child: Text(
-                inicial,
-                style: const TextStyle(
-                  color: Color(0xFF1A237E),
-                  fontWeight: FontWeight.bold, fontSize: 16))),
+              child: Text(inicial,
+                style: const TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.bold, fontSize: 16))),
           ),
           const SizedBox(width: 10),
-
           Expanded(flex: 4, child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(u['nombre'] ?? '-',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(u['nombre'] ?? '-', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               const SizedBox(height: 2),
-              Text(u['email'] ?? '-',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              Text(u['email'] ?? '-', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             ])),
-
           _badgeRol(u['rol']?.toString()),
           const SizedBox(width: 8),
-
           _badgeEstado(u['activo'] as bool?),
           const SizedBox(width: 8),
-
           InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () => _mostrarFormulario(usuario: u),
@@ -135,12 +131,10 @@ class _UsuariosPageState extends State<UsuariosPage> {
               decoration: BoxDecoration(
                 color: const Color(0xFF1A237E).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.edit, size: 16, color: const Color(0xFF1A237E)),
-                const SizedBox(width: 4),
-                const Text("Editar",
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A237E))),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.edit, size: 16, color: Color(0xFF1A237E)),
+                SizedBox(width: 4),
+                Text("Editar", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
               ]),
             ),
           ),
@@ -153,19 +147,12 @@ class _UsuariosPageState extends State<UsuariosPage> {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: Row(children: [
       const SizedBox(width: 48),
-      const Expanded(flex: 4, child: Text("Nombre / Email",
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
-      SizedBox(width: 72, child: Text("Rol",
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey),
-          textAlign: TextAlign.center)),
+      const Expanded(flex: 4, child: Text("Nombre / Email", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
+      SizedBox(width: 72, child: Text("Rol", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
       const SizedBox(width: 8),
-      SizedBox(width: 72, child: Text("Estado",
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey),
-          textAlign: TextAlign.center)),
+      SizedBox(width: 72, child: Text("Estado", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
       const SizedBox(width: 8),
-      SizedBox(width: 72, child: Text("Acción",
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey),
-          textAlign: TextAlign.center)),
+      SizedBox(width: 72, child: Text("Acción", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
     ]),
   );
 
@@ -184,17 +171,12 @@ class _UsuariosPageState extends State<UsuariosPage> {
           title: Text(esNuevo ? "Nuevo Usuario" : "Editar Usuario"),
           content: SingleChildScrollView(child: Column(
             mainAxisSize: MainAxisSize.min, children: [
-              TextField(controller: nombreCtrl,
-                decoration: const InputDecoration(labelText: "Nombre completo")),
+              TextField(controller: nombreCtrl, decoration: const InputDecoration(labelText: "Nombre completo")),
               const SizedBox(height: 8),
-              TextField(controller: emailCtrl,
-                decoration: const InputDecoration(labelText: "Email"),
-                keyboardType: TextInputType.emailAddress),
+              TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Email"), keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 8),
               if (esNuevo) ...[
-                TextField(controller: passCtrl,
-                  decoration: const InputDecoration(labelText: "Contraseña"),
-                  obscureText: true),
+                TextField(controller: passCtrl, decoration: const InputDecoration(labelText: "Contraseña"), obscureText: true),
                 const SizedBox(height: 8),
               ],
               DropdownButtonFormField<String>(
@@ -220,52 +202,30 @@ class _UsuariosPageState extends State<UsuariosPage> {
             ],
           )),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Cancelar")),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancelar")),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007BFF),
-                foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white),
               onPressed: () async {
                 final nombre = nombreCtrl.text.trim();
                 final email = emailCtrl.text.trim();
                 final pass = passCtrl.text.trim();
-
                 if (nombre.isEmpty || email.isEmpty || (esNuevo && pass.isEmpty)) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text("Por favor completa todos los campos"),
-                    backgroundColor: Colors.orange));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Completa todos los campos"), backgroundColor: Colors.orange));
                   return;
                 }
-
                 Navigator.pop(ctx);
                 try {
                   if (esNuevo) {
-                    await UsuariosService.crearUsuario(
-                      nombre:   nombre,
-                      email:    email,
-                      password: pass,
-                      rol:      rolSel,
-                    );
+                    await UsuariosService.crearUsuario(nombre: nombre, email: email, password: pass, rol: rolSel);
                   } else {
-                    await UsuariosService.editarUsuario(
-                      usuario!['id'].toString(),
-                      nombre: nombre,
-                      email:  email,
-                      rol:    rolSel,
-                      activo: activoSel,
-                    );
+                    await UsuariosService.editarUsuario(usuario!['id'].toString(), nombre: nombre, email: email, rol: rolSel, activo: activoSel);
                   }
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(esNuevo ? "Usuario creado ✓" : "Usuario actualizado ✓"),
-                      backgroundColor: Colors.green));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(esNuevo ? "Usuario creado ✓" : "Usuario actualizado ✓"), backgroundColor: Colors.green));
                   }
                   await _cargar();
                 } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
                 }
               },
               child: Text(esNuevo ? "Crear" : "Guardar")),
@@ -278,19 +238,17 @@ class _UsuariosPageState extends State<UsuariosPage> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      selectedIndex: 4,
+      selectedIndex: 5, // Cambiado de 4 a 5 para sincronizar con AppLayout
       onItemSelected: _onSelect,
       child: Column(children: [
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Row(children: [
-            const Expanded(child: Text("Usuarios",
-              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold))),
+            const Expanded(child: Text("Usuarios", style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold))),
             IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _cargar),
           ]),
         ),
-
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
@@ -310,7 +268,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 elevation: 0)),
           ]),
         ),
-
         if (!_loading && _usuarios.isNotEmpty)
           Container(
             color: Colors.grey.shade50,
@@ -325,9 +282,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
               _resumenChip("Admins", "$_admins", const Color(0xFF1A237E)),
             ]),
           ),
-
         if (!_loading && _usuarios.isNotEmpty) _encabezado(),
-
         Expanded(child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
