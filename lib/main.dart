@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import 'pages/login_page.dart';
 import 'pages/menu_page.dart';
 import 'pages/bancas_page.dart';
+import 'pages/venta_page.dart';
 import 'pages/premios_page.dart';
+import 'pages/reportes_page.dart';
+import 'pages/usuarios_page.dart';
+import 'pages/limites_page.dart';
+import 'pages/configuracion_page.dart';
 
 void main() {
   runApp(const SuperBettApp());
@@ -26,11 +31,16 @@ class SuperBettApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const LoginPage(),
-        '/login': (context) => const LoginPage(),
-        '/menu': (context) => const MenuPage(),
-        '/bancas': (context) => const BancasPage(),
-        '/premios': (context) => const PremiosPage(),
+        '/':              (context) => const LoginPage(),
+        '/login':         (context) => const LoginPage(),
+        '/menu':          (context) => const MenuPage(),
+        '/bancas':        (context) => const BancasPage(),
+        '/venta':         (context) => const VentaPage(),
+        '/premios':       (context) => const PremiosPage(),
+        '/reportes':      (context) => const ReportesPage(),
+        '/usuarios':      (context) => const UsuariosPage(),
+        '/limites':       (context) => const LimitesPage(),
+        '/configuracion': (context) => const ConfiguracionPage(),
       },
     );
   }

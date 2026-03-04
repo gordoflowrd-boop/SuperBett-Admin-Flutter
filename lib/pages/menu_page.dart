@@ -6,18 +6,17 @@ class MenuPage extends StatelessWidget {
 
   void _onSelect(BuildContext context, int i) {
     const rutas = [
-      null,
-      '/bancas',
-      '/premios',
-      '/reportes',
-      '/usuarios',
-      '/limites',
-      '/configuracion',
+      null,              // 0 → /menu (ya estamos aquí)
+      '/bancas',         // 1
+      '/venta',          // 2
+      '/premios',        // 3
+      '/reportes',       // 4
+      '/usuarios',       // 5
+      '/limites',        // 6
+      '/configuracion',  // 7
     ];
     final ruta = rutas[i];
-    if (ruta != null && ruta != '/menu') {
-      Navigator.pushReplacementNamed(context, ruta);
-    }
+    if (ruta != null) Navigator.pushReplacementNamed(context, ruta);
   }
 
   @override
@@ -27,13 +26,13 @@ class MenuPage extends StatelessWidget {
       onItemSelected: (i) => _onSelect(context, i),
       child: Column(
         children: [
-          // ── Navbar idéntico al de Bancas ──
+          // ── Navbar ──
           Container(
             color: const Color(0xFF1A237E),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
+            child: const Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     "Panel Principal",
                     style: TextStyle(
@@ -43,8 +42,7 @@ class MenuPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Icono decorativo o de usuario para mantener la simetría
-                const Icon(Icons.dashboard_outlined, color: Colors.white, size: 20),
+                Icon(Icons.dashboard_outlined, color: Colors.white, size: 20),
               ],
             ),
           ),
