@@ -321,3 +321,4 @@ class _UsuariosPageState extends State<UsuariosPage> {
         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white)),
     ]));
 }
+

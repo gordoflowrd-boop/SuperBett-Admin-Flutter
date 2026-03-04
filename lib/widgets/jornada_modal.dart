@@ -320,3 +320,4 @@ class _JornadaModalState extends State<JornadaModal> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
     child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)));
 }
+

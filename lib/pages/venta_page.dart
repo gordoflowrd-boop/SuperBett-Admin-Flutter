@@ -320,3 +320,4 @@ class _VentaPageState extends State<VentaPage> {
     Text("No hay ventas para $_fechaStr", style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
   ]));
 }
+

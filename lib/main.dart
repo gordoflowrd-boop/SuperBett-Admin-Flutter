@@ -5,7 +5,7 @@ import 'pages/menu_page.dart';
 import 'pages/bancas_page.dart';
 import 'pages/venta_page.dart';
 import 'pages/premios_page.dart';
-import 'pages/reportes_page.dart';
+import 'pages/reporte_page.dart';
 import 'pages/usuarios_page.dart';
 import 'pages/limites_page.dart';
 import 'pages/configuracion_page.dart';
@@ -45,3 +45,4 @@ class SuperBettApp extends StatelessWidget {
     );
   }
 }
+

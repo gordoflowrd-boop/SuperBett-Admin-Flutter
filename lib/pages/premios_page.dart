@@ -36,10 +36,16 @@ class _PremiosPageState extends State<PremiosPage> {
 
   void _onSelect(int i) {
     const rutas = [
-      '/menu', '/bancas', '/premios', '/reportes',
-      '/usuarios', '/limites', '/configuracion',
+      '/menu',          // 0
+      '/bancas',        // 1
+      '/venta',         // 2
+      '/premios',       // 3
+      '/reportes',      // 4
+      '/usuarios',      // 5
+      '/limites',       // 6
+      '/configuracion', // 7
     ];
-    if (rutas[i] != '/premios') Navigator.pushReplacementNamed(context, rutas[i]);
+    if (i < rutas.length && rutas[i] != '/premios') Navigator.pushReplacementNamed(context, rutas[i]);
   }
 
   Future<void> _generar() async {
@@ -211,7 +217,7 @@ class _PremiosPageState extends State<PremiosPage> {
     final conPremio  = _jornadas.where((j) => j.q1 != null && j.q1!.isNotEmpty).length;
 
     return AppLayout(
-      selectedIndex: 2,
+      selectedIndex: 3,
       onItemSelected: _onSelect,
       child: Column(children: [
         Container(
