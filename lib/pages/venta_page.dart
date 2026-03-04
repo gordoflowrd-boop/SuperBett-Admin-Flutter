@@ -305,9 +305,9 @@ class _VentaPageState extends State<VentaPage> {
 
         // ── Barra de filtros ─────────────────────────
         Container(
-          color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
+            color: Colors.white,
             border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
           child: Row(children: [
 

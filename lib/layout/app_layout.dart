@@ -16,6 +16,7 @@ class AppLayout extends StatelessWidget {
   static const _items = [
     {'label': 'Menú',          'icon': Icons.home_outlined,         'iconSel': Icons.home},
     {'label': 'Bancas',        'icon': Icons.storefront_outlined,   'iconSel': Icons.storefront},
+    {'label': 'Venta',         'icon': Icons.receipt_long_outlined, 'iconSel': Icons.receipt_long},
     {'label': 'Premios',       'icon': Icons.emoji_events_outlined, 'iconSel': Icons.emoji_events},
     {'label': 'Reportes',      'icon': Icons.bar_chart_outlined,    'iconSel': Icons.bar_chart},
     {'label': 'Usuarios',      'icon': Icons.people_outline,        'iconSel': Icons.people},
