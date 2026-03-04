@@ -85,6 +85,10 @@ class _UsuariosPageState extends State<UsuariosPage> {
 
   // ── Fila de usuario ────────────────────────────────
   Widget _filaUsuario(Map<String, dynamic> u) {
+    // Protección contra strings vacíos para el avatar
+    final String nombreStr = (u['nombre'] ?? u['email'] ?? '?').toString();
+    final String inicial = nombreStr.isNotEmpty ? nombreStr[0].toUpperCase() : '?';
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       shape: RoundedRectangleBorder(
@@ -94,8 +98,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(children: [
-
-          // Avatar con inicial
           Container(
             width: 38, height: 38,
             decoration: BoxDecoration(
@@ -103,15 +105,13 @@ class _UsuariosPageState extends State<UsuariosPage> {
               borderRadius: BorderRadius.circular(10)),
             child: Center(
               child: Text(
-                ((u['nombre'] ?? u['email'] ?? '?') as String)
-                    .substring(0, 1).toUpperCase(),
+                inicial,
                 style: const TextStyle(
                   color: Color(0xFF1A237E),
                   fontWeight: FontWeight.bold, fontSize: 16))),
           ),
           const SizedBox(width: 10),
 
-          // Nombre + email
           Expanded(flex: 4, child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(u['nombre'] ?? '-',
@@ -121,15 +121,12 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             ])),
 
-          // Rol
           _badgeRol(u['rol']?.toString()),
           const SizedBox(width: 8),
 
-          // Estado
           _badgeEstado(u['activo'] as bool?),
           const SizedBox(width: 8),
 
-          // Acciones
           InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () => _mostrarFormulario(usuario: u),
@@ -152,7 +149,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
     );
   }
 
-  // ── Encabezado columnas ────────────────────────────
   Widget _encabezado() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: Row(children: [
@@ -173,7 +169,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
     ]),
   );
 
-  // ── Modal Crear / Editar ───────────────────────────
   Future<void> _mostrarFormulario({Map<String, dynamic>? usuario}) async {
     final esNuevo = usuario == null;
     final nombreCtrl  = TextEditingController(text: usuario?['nombre'] ?? '');
@@ -189,23 +184,19 @@ class _UsuariosPageState extends State<UsuariosPage> {
           title: Text(esNuevo ? "Nuevo Usuario" : "Editar Usuario"),
           content: SingleChildScrollView(child: Column(
             mainAxisSize: MainAxisSize.min, children: [
-
               TextField(controller: nombreCtrl,
                 decoration: const InputDecoration(labelText: "Nombre completo")),
               const SizedBox(height: 8),
-
               TextField(controller: emailCtrl,
                 decoration: const InputDecoration(labelText: "Email"),
                 keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 8),
-
               if (esNuevo) ...[
                 TextField(controller: passCtrl,
                   decoration: const InputDecoration(labelText: "Contraseña"),
                   obscureText: true),
                 const SizedBox(height: 8),
               ],
-
               DropdownButtonFormField<String>(
                 value: rolSel,
                 decoration: const InputDecoration(labelText: "Rol"),
@@ -216,7 +207,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 ],
                 onChanged: (v) => setModalState(() => rolSel = v!),
               ),
-
               if (!esNuevo) ...[
                 const SizedBox(height: 8),
                 SwitchListTile(
@@ -238,36 +228,44 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 backgroundColor: const Color(0xFF007BFF),
                 foregroundColor: Colors.white),
               onPressed: () async {
+                final nombre = nombreCtrl.text.trim();
+                final email = emailCtrl.text.trim();
+                final pass = passCtrl.text.trim();
+
+                if (nombre.isEmpty || email.isEmpty || (esNuevo && pass.isEmpty)) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text("Por favor completa todos los campos"),
+                    backgroundColor: Colors.orange));
+                  return;
+                }
+
                 Navigator.pop(ctx);
                 try {
                   if (esNuevo) {
                     await UsuariosService.crearUsuario(
-                      nombre:   nombreCtrl.text.trim(),
-                      email:    emailCtrl.text.trim(),
-                      password: passCtrl.text.trim(),
+                      nombre:   nombre,
+                      email:    email,
+                      password: pass,
                       rol:      rolSel,
                     );
                   } else {
                     await UsuariosService.editarUsuario(
                       usuario!['id'].toString(),
-                      nombre: nombreCtrl.text.trim(),
-                      email:  emailCtrl.text.trim(),
+                      nombre: nombre,
+                      email:  email,
                       rol:    rolSel,
                       activo: activoSel,
                     );
                   }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(esNuevo
-                          ? "Usuario creado ✓"
-                          : "Usuario actualizado ✓"),
+                      content: Text(esNuevo ? "Usuario creado ✓" : "Usuario actualizado ✓"),
                       backgroundColor: Colors.green));
                   }
                   await _cargar();
                 } catch (e) {
                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Error: $e"),
-                        backgroundColor: Colors.red));
+                    SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
                 }
               },
               child: Text(esNuevo ? "Crear" : "Guardar")),
@@ -283,22 +281,16 @@ class _UsuariosPageState extends State<UsuariosPage> {
       selectedIndex: 4,
       onItemSelected: _onSelect,
       child: Column(children: [
-
-        // ── Navbar azul ──────────────────────────────
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Row(children: [
             const Expanded(child: Text("Usuarios",
-              style: TextStyle(color: Colors.white, fontSize: 17,
-                  fontWeight: FontWeight.bold))),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: _cargar),
+              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold))),
+            IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _cargar),
           ]),
         ),
 
-        // ── Barra de acciones ────────────────────────
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
@@ -309,8 +301,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
             ElevatedButton.icon(
               onPressed: () => _mostrarFormulario(),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text("Nuevo Usuario",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              label: const Text("Nuevo Usuario", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007BFF),
                 foregroundColor: Colors.white,
@@ -320,26 +311,23 @@ class _UsuariosPageState extends State<UsuariosPage> {
           ]),
         ),
 
-        // ── Chips resumen ────────────────────────────
         if (!_loading && _usuarios.isNotEmpty)
           Container(
             color: Colors.grey.shade50,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(children: [
-              _resumenChip("Total",    "$_totalUsuarios", Colors.blueGrey),
+              _resumenChip("Total", "$_totalUsuarios", Colors.blueGrey),
               const SizedBox(width: 6),
-              _resumenChip("Activos",  "$_activos",  const Color(0xFF28A745)),
+              _resumenChip("Activos", "$_activos", const Color(0xFF28A745)),
               const SizedBox(width: 6),
               _resumenChip("Inactivos","$_inactivos", const Color(0xFFDC3545)),
               const SizedBox(width: 6),
-              _resumenChip("Admins",   "$_admins",   const Color(0xFF1A237E)),
+              _resumenChip("Admins", "$_admins", const Color(0xFF1A237E)),
             ]),
           ),
 
-        // ── Encabezado ───────────────────────────────
         if (!_loading && _usuarios.isNotEmpty) _encabezado(),
 
-        // ── Contenido ────────────────────────────────
         Expanded(child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
@@ -350,8 +338,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
                   onRefresh: _cargar,
                   child: ListView.builder(
                     itemCount: _usuarios.length,
-                    itemBuilder: (_, i) =>
-                        _filaUsuario(_usuarios[i] as Map<String, dynamic>),
+                    itemBuilder: (_, i) => _filaUsuario(_usuarios[i] as Map<String, dynamic>),
                   ))),
       ]),
     );
@@ -361,29 +348,21 @@ class _UsuariosPageState extends State<UsuariosPage> {
     mainAxisAlignment: MainAxisAlignment.center, children: [
       const Icon(Icons.error_outline, color: Colors.red, size: 48),
       const SizedBox(height: 10),
-      Text(_error, style: const TextStyle(color: Colors.red),
-          textAlign: TextAlign.center),
+      Text(_error, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
       const SizedBox(height: 14),
-      ElevatedButton.icon(onPressed: _cargar,
-        icon: const Icon(Icons.refresh), label: const Text("Reintentar")),
+      ElevatedButton.icon(onPressed: _cargar, icon: const Icon(Icons.refresh), label: const Text("Reintentar")),
     ]));
 
   Widget _emptyView() => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(Icons.people_outline, size: 56, color: Colors.grey.shade300),
       const SizedBox(height: 14),
-      Text("No hay usuarios registrados",
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
-      const SizedBox(height: 6),
-      Text('Usa "Nuevo Usuario" para agregar uno.',
-          style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+      Text("No hay usuarios registrados", style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
       const SizedBox(height: 20),
       ElevatedButton.icon(
         onPressed: () => _mostrarFormulario(),
         icon: const Icon(Icons.add),
         label: const Text("Nuevo Usuario"),
-        style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF007BFF),
-            foregroundColor: Colors.white)),
+        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white)),
     ]));
 }

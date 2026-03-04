@@ -51,7 +51,11 @@ class _ReportesPageState extends State<ReportesPage> {
         setState(() { _resumen = data; _loading = false; });
       } else {
         final data = await ReportesService.obtenerGanadores(_fechaStr);
-        setState(() { _ganadores = data; _loading = false; });
+        // Filtrar ganadores con premio > 0 una sola vez al cargar
+        setState(() { 
+          _ganadores = data.where((g) => _toDouble(g['total_ganado']) > 0).toList(); 
+          _loading = false; 
+        });
       }
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
@@ -68,7 +72,6 @@ class _ReportesPageState extends State<ReportesPage> {
     if (p != null) { setState(() => _fecha = p); await _cargar(); }
   }
 
-  // ── Badges de estado ──────────────────────────────
   Widget _resumenChip(String label, String val, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
@@ -81,7 +84,6 @@ class _ReportesPageState extends State<ReportesPage> {
       Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w600)),
     ]));
 
-  // ── Tab toggle Ventas / Ganadores ─────────────────
   Widget _tabToggle(String label, String value) {
     final sel = _tipoVista == value;
     return GestureDetector(
@@ -111,7 +113,6 @@ class _ReportesPageState extends State<ReportesPage> {
     );
   }
 
-  // ── Encabezado columnas ventas ────────────────────
   Widget _encabezadoVentas() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: Row(children: [
@@ -130,7 +131,6 @@ class _ReportesPageState extends State<ReportesPage> {
       textAlign: TextAlign.right,
       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey)));
 
-  // ── Encabezado columnas ganadores ─────────────────
   Widget _encabezadoGanadores() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: Row(children: [
@@ -146,7 +146,6 @@ class _ReportesPageState extends State<ReportesPage> {
     ]),
   );
 
-  // ── Fila de venta por banca ───────────────────────
   Widget _filaVenta(Map<String, dynamic> r) {
     final resultado = _toDouble(r['resultado']);
     return Card(
@@ -172,7 +171,6 @@ class _ReportesPageState extends State<ReportesPage> {
     );
   }
 
-  // ── Fila TOTAL ────────────────────────────────────
   Widget _filaTotal() => Card(
     margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
     color: const Color(0xFF1A237E).withOpacity(0.06),
@@ -204,7 +202,6 @@ class _ReportesPageState extends State<ReportesPage> {
         style: TextStyle(color: color, fontSize: 13,
             fontWeight: bold ? FontWeight.bold : FontWeight.normal)));
 
-  // ── Fila ganador ──────────────────────────────────
   Widget _filaGanador(Map<String, dynamic> g) => Card(
     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
     shape: RoundedRectangleBorder(
@@ -246,8 +243,6 @@ class _ReportesPageState extends State<ReportesPage> {
       selectedIndex: 3,
       onItemSelected: _onSelect,
       child: Column(children: [
-
-        // ── Navbar azul ──────────────────────────────
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -261,21 +256,16 @@ class _ReportesPageState extends State<ReportesPage> {
           ]),
         ),
 
-        // ── Barra de filtros ─────────────────────────
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
           child: Row(children: [
-
-            // Tabs Ventas / Ganadores
             _tabToggle("Ventas",    "ventas"),
             const SizedBox(width: 6),
             _tabToggle("Ganadores", "ganadores"),
             const SizedBox(width: 10),
-
-            // Selector fecha
             GestureDetector(
               onTap: _pickFecha,
               child: Container(
@@ -294,8 +284,6 @@ class _ReportesPageState extends State<ReportesPage> {
               ),
             ),
             const SizedBox(width: 6),
-
-            // Botón Hoy
             TextButton(
               onPressed: () { setState(() => _fecha = DateTime.now()); _cargar(); },
               style: TextButton.styleFrom(
@@ -308,10 +296,7 @@ class _ReportesPageState extends State<ReportesPage> {
               child: const Text("Hoy",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             ),
-
             const Spacer(),
-
-            // Botón Cargar
             ElevatedButton.icon(
               onPressed: _loading ? null : _cargar,
               icon: const Icon(Icons.search, size: 16),
@@ -326,7 +311,6 @@ class _ReportesPageState extends State<ReportesPage> {
           ]),
         ),
 
-        // ── Chips resumen (solo ventas) ──────────────
         if (!_loading && _tipoVista == "ventas" && _resumen.isNotEmpty)
           Container(
             color: Colors.grey.shade50,
@@ -343,11 +327,9 @@ class _ReportesPageState extends State<ReportesPage> {
             ]),
           ),
 
-        // ── Encabezados de tabla ─────────────────────
         if (!_loading && _tipoVista == "ventas"    && _resumen.isNotEmpty)   _encabezadoVentas(),
         if (!_loading && _tipoVista == "ganadores" && _ganadores.isNotEmpty) _encabezadoGanadores(),
 
-        // ── Contenido ────────────────────────────────
         Expanded(child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
@@ -358,7 +340,7 @@ class _ReportesPageState extends State<ReportesPage> {
                 : RefreshIndicator(
                     onRefresh: _cargar,
                     child: ListView.builder(
-                      itemCount: _resumen.length + 1, // +1 fila TOTAL
+                      itemCount: _resumen.length + 1,
                       itemBuilder: (_, i) => i < _resumen.length
                           ? _filaVenta(_resumen[i] as Map<String, dynamic>)
                           : _filaTotal(),
@@ -368,15 +350,8 @@ class _ReportesPageState extends State<ReportesPage> {
                 : RefreshIndicator(
                     onRefresh: _cargar,
                     child: ListView.builder(
-                      itemCount: _ganadores
-                          .where((g) => _toDouble(g['total_ganado']) > 0)
-                          .length,
-                      itemBuilder: (_, i) {
-                        final validos = _ganadores
-                            .where((g) => _toDouble(g['total_ganado']) > 0)
-                            .toList();
-                        return _filaGanador(validos[i] as Map<String, dynamic>);
-                      },
+                      itemCount: _ganadores.length,
+                      itemBuilder: (_, i) => _filaGanador(_ganadores[i] as Map<String, dynamic>),
                     ))),
       ]),
     );

@@ -214,7 +214,6 @@ class _PremiosPageState extends State<PremiosPage> {
       selectedIndex: 2,
       onItemSelected: _onSelect,
       child: Column(children: [
-        // ── Navbar Unificado (Sin botón de retorno) ──
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -225,15 +224,14 @@ class _PremiosPageState extends State<PremiosPage> {
           ]),
         ),
 
-        // ── Barra fecha (Color normal, más pequeña y separada) ──
+        // ── Barra fecha (CORREGIDO: Color dentro de BoxDecoration) ──
         Container(
-          color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
+            color: Colors.white, // Movido aquí para evitar conflicto
             border: Border(bottom: BorderSide(color: Colors.grey.shade200))
           ),
           child: Row(children: [
-            // Fecha selector con color normal (Gris/Blanco)
             GestureDetector(
               onTap: _pickFecha,
               child: Container(
@@ -261,7 +259,6 @@ class _PremiosPageState extends State<PremiosPage> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               child: const Text("Hoy", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
             const Spacer(),
-            // Botón Generar (Mantiene su color para destacar acción)
             ElevatedButton.icon(
               onPressed: _generar,
               icon: const Icon(Icons.add, size: 16),
@@ -275,7 +272,6 @@ class _PremiosPageState extends State<PremiosPage> {
           ]),
         ),
 
-        // ── Chips resumen
         if (!_loading && _jornadas.isNotEmpty)
           Container(
             color: Colors.grey.shade50,
