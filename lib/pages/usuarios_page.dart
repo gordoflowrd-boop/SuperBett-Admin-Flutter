@@ -183,9 +183,10 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 value: rolSel,
                 decoration: const InputDecoration(labelText: "Rol"),
                 items: const [
-                  DropdownMenuItem(value: 'admin',   child: Text("Admin")),
-                  DropdownMenuItem(value: 'central', child: Text("Central")),
-                  DropdownMenuItem(value: 'rifero',  child: Text("Rifero")),
+                  DropdownMenuItem(value: 'admin',    child: Text("Admin")),
+                  DropdownMenuItem(value: 'central',  child: Text("Central")),
+                  DropdownMenuItem(value: 'rifero',   child: Text("Rifero")),
+                  DropdownMenuItem(value: 'vendedor', child: Text("Vendedor")),
                 ],
                 onChanged: (v) => setModalState(() => rolSel = v!),
               ),
