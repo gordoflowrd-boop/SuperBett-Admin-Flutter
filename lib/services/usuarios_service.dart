@@ -73,18 +73,31 @@ class UsuariosService {
   }
 
   // ── PATCH /api/admin/usuarios/:id ─────────────────────
+  // Retorna el id del usuario actualmente logueado
+  static Future<String?> obtenerIdPropio() async {
+    final p = await SharedPreferences.getInstance();
+    final raw = p.getString('usuario');
+    if (raw == null) return null;
+    final map = jsonDecode(raw) as Map<String, dynamic>;
+    return map['id']?.toString();
+  }
+
   static Future<void> editarUsuario(
     String id, {
     String? nombre,
+    String? username,
     String? rol,
     bool?   activo,
     String? password,
+    String? passwordActual, // requerido solo si el admin edita su propia cuenta
   }) async {
     final body = <String, dynamic>{};
-    if (nombre   != null) body['nombre']   = nombre;
-    if (rol      != null) body['rol']      = rol;
-    if (activo   != null) body['activo']   = activo;
-    if (password != null) body['password'] = password;
+    if (nombre         != null) body['nombre']           = nombre;
+    if (username       != null) body['username']         = username;
+    if (rol            != null) body['rol']              = rol;
+    if (activo         != null) body['activo']           = activo;
+    if (password       != null) body['password']         = password;
+    if (passwordActual != null) body['password_actual']  = passwordActual;
     await _fetch('/admin/usuarios/$id', method: 'PATCH', body: body);
   }
 }

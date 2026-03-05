@@ -10,11 +10,21 @@ class UsuariosPage extends StatefulWidget {
 
 class _UsuariosPageState extends State<UsuariosPage> {
   List<dynamic> _usuarios = [];
-  bool   _loading = true;
-  String _error   = "";
+  bool   _loading  = true;
+  String _error    = "";
+  String _idPropio = ""; // id del admin logueado
 
   @override
-  void initState() { super.initState(); _cargar(); }
+  void initState() {
+    super.initState();
+    _cargar();
+    _cargarIdPropio();
+  }
+
+  Future<void> _cargarIdPropio() async {
+    final id = await UsuariosService.obtenerIdPropio();
+    if (mounted) setState(() => _idPropio = id ?? '');
+  }
 
   // Corregido para coincidir exactamente con el orden de AppLayout
   void _onSelect(int i) {
@@ -158,10 +168,12 @@ class _UsuariosPageState extends State<UsuariosPage> {
   );
 
   Future<void> _mostrarFormulario({Map<String, dynamic>? usuario}) async {
-    final esNuevo = usuario == null;
-    final nombreCtrl  = TextEditingController(text: usuario?['nombre'] ?? '');
-    final emailCtrl   = TextEditingController(text: usuario?['username'] ?? '');
-    final passCtrl    = TextEditingController();
+    final esNuevo   = usuario == null;
+    final esPropio  = !esNuevo && usuario!['id'].toString() == _idPropio;
+    final nombreCtrl    = TextEditingController(text: usuario?['nombre'] ?? '');
+    final emailCtrl     = TextEditingController(text: usuario?['username'] ?? '');
+    final passCtrl      = TextEditingController();
+    final passActualCtrl = TextEditingController();
     String rolSel     = usuario?['rol'] ?? 'rifero';
     bool   activoSel  = usuario?['activo'] != false;
 
@@ -176,15 +188,33 @@ class _UsuariosPageState extends State<UsuariosPage> {
               const SizedBox(height: 8),
               TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Username"), keyboardType: TextInputType.text),
               const SizedBox(height: 8),
-              if (esNuevo) ...[ 
-                TextField(controller: passCtrl, decoration: const InputDecoration(labelText: "Contraseña"), obscureText: true),
-                const SizedBox(height: 8),
-              ] else ...[
+              if (esNuevo) ...[
                 TextField(
                   controller: passCtrl,
-                  decoration: const InputDecoration(
-                    labelText: "Nueva contraseña",
-                    hintText: "Dejar vacío para no cambiar"),
+                  decoration: const InputDecoration(labelText: "Contraseña"),
+                  obscureText: true),
+                const SizedBox(height: 8),
+              ] else ...[
+                // Si es su propia cuenta: pedir contraseña actual primero
+                if (esPropio) ...[
+                  TextField(
+                    controller: passActualCtrl,
+                    decoration: InputDecoration(
+                      labelText: "Contraseña actual",
+                      hintText: "Requerida para cambiar contraseña",
+                      prefixIcon: const Icon(Icons.lock_outline, size: 18),
+                      filled: true,
+                      fillColor: Colors.amber.shade50,
+                      border: const OutlineInputBorder()),
+                    obscureText: true),
+                  const SizedBox(height: 8),
+                ],
+                TextField(
+                  controller: passCtrl,
+                  decoration: InputDecoration(
+                    labelText: esPropio ? "Nueva contraseña" : "Nueva contraseña",
+                    hintText: "Dejar vacío para no cambiar",
+                    prefixIcon: const Icon(Icons.lock, size: 18)),
                   obscureText: true),
                 const SizedBox(height: 8),
               ],
@@ -227,6 +257,14 @@ class _UsuariosPageState extends State<UsuariosPage> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La contraseña es requerida"), backgroundColor: Colors.orange));
                   return;
                 }
+                // Validación extra: si es propio y quiere cambiar pass, pass actual es requerida
+                final passActual = passActualCtrl.text.trim();
+                if (!esNuevo && esPropio && pass.isNotEmpty && passActual.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text("Debes ingresar tu contraseña actual"),
+                    backgroundColor: Colors.orange));
+                  return;
+                }
                 Navigator.pop(ctx);
                 try {
                   if (esNuevo) {
@@ -234,10 +272,12 @@ class _UsuariosPageState extends State<UsuariosPage> {
                   } else {
                     await UsuariosService.editarUsuario(
                       usuario!['id'].toString(),
-                      nombre:   nombre,
-                      rol:      rolSel,
-                      activo:   activoSel,
-                      password: pass.isNotEmpty ? pass : null,
+                      nombre:          nombre,
+                      username:        username,
+                      rol:             rolSel,
+                      activo:          activoSel,
+                      password:        pass.isNotEmpty ? pass : null,
+                      passwordActual:  (esPropio && pass.isNotEmpty) ? passActual : null,
                     );
                   }
                   if (mounted) {
