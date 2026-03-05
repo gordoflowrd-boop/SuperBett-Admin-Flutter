@@ -257,6 +257,10 @@ class _UsuariosPageState extends State<UsuariosPage> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La contraseña es requerida"), backgroundColor: Colors.orange));
                   return;
                 }
+                if (esNuevo && pass.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La contraseña debe tener al menos 6 caracteres"), backgroundColor: Colors.orange));
+                  return;
+                }
                 // Validación extra: si es propio y quiere cambiar pass, pass actual es requerida
                 final passActual = passActualCtrl.text.trim();
                 if (!esNuevo && esPropio && pass.isNotEmpty && passActual.isEmpty) {
