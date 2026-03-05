@@ -61,10 +61,15 @@ class _VentaPageState extends State<VentaPage> {
   Future<void> _cargarVenta() async {
     setState(() { _loading = true; _error = ""; });
     try {
-      var data = await VentaService.obtenerVentaDia(
+      final resp = await VentaService.obtenerVentaDia(
         fecha:     _fechaStr,
         loteriaId: _loteriaId,
       );
+      // La API retorna { normales: [], super_pale: [], totales: {} }
+      final normales   = List<dynamic>.from(resp['normales']   ?? []);
+      final superPale  = List<dynamic>.from(resp['super_pale'] ?? []);
+      var data = [...normales, ...superPale];
+      // Filtro SP_ONLY en cliente
       if (_loteriaId == 'SP_ONLY') {
         data = data.where((r) => r['modalidad'] == 'SP').toList();
       }
@@ -320,4 +325,3 @@ class _VentaPageState extends State<VentaPage> {
     Text("No hay ventas para $_fechaStr", style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
   ]));
 }
-

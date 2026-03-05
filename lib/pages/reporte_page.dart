@@ -54,11 +54,20 @@ class _ReportesPageState extends State<ReportesPage> {
     try {
       if (_tipoVista == "ventas") {
         final data = await ReportesService.obtenerResumen(_fechaStr);
-        setState(() { _resumen = data; _loading = false; });
+        // resumen_admin_dia devuelve una lista de bancas [{banca, total_venta,...}]
+        List<dynamic> lista = [];
+        if (data is List) {
+          lista = data;
+        } else if (data is Map && data.isNotEmpty) {
+          // Si la función devuelve un solo objeto (ej: totales globales)
+          lista = [data];
+        }
+        setState(() { _resumen = lista; _loading = false; });
       } else {
-        final data = await ReportesService.obtenerGanadores(_fechaStr);
+        final raw = await ReportesService.obtenerGanadores(_fechaStr);
+        final lista = raw is List ? raw : <dynamic>[];
         setState(() { 
-          _ganadores = data.where((g) => _toDouble(g['total_ganado']) > 0).toList(); 
+          _ganadores = lista.where((g) => _toDouble(g['total_ganado']) > 0).toList(); 
           _loading = false; 
         });
       }
@@ -142,20 +151,53 @@ class _ReportesPageState extends State<ReportesPage> {
           ]),
         ),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border(bottom: BorderSide(color: Color(0xFFE0E0E0)))),
-          child: Row(children: [
-            _tabToggle("Ventas", "ventas"),
-            const SizedBox(width: 8),
-            _tabToggle("Ganadores", "ganadores"),
-            const Spacer(),
-            ActionChip(
-              avatar: const Icon(Icons.calendar_today, size: 14),
-              label: Text(_fechaStr),
-              onPressed: _pickFecha,
-            ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Fila 1: tabs
+            Row(children: [
+              _tabToggle("Ventas", "ventas"),
+              const SizedBox(width: 8),
+              _tabToggle("Ganadores", "ganadores"),
+            ]),
+            const SizedBox(height: 8),
+            // Fila 2: fecha + hoy
+            Row(children: [
+              GestureDetector(
+                onTap: _pickFecha,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.calendar_today, color: Colors.grey.shade700, size: 14),
+                    const SizedBox(width: 6),
+                    Text(_fechaStr, style: TextStyle(
+                        color: Colors.grey.shade800,
+                        fontWeight: FontWeight.bold, fontSize: 13)),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 6),
+              TextButton(
+                onPressed: () {
+                  setState(() => _fecha = DateTime.now());
+                  _cargar();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey.shade700,
+                  backgroundColor: Colors.grey.shade200,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                child: const Text("Hoy",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+            ]),
           ]),
         ),
         if (!_loading && _tipoVista == "ventas" && _resumen.isNotEmpty)

@@ -117,7 +117,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
             crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(u['nombre'] ?? '-', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               const SizedBox(height: 2),
-              Text(u['email'] ?? '-', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              Text(u['username'] ?? '-', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             ])),
           _badgeRol(u['rol']?.toString()),
           const SizedBox(width: 8),
@@ -159,7 +159,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
   Future<void> _mostrarFormulario({Map<String, dynamic>? usuario}) async {
     final esNuevo = usuario == null;
     final nombreCtrl  = TextEditingController(text: usuario?['nombre'] ?? '');
-    final emailCtrl   = TextEditingController(text: usuario?['email']  ?? '');
+    final emailCtrl   = TextEditingController(text: usuario?['username'] ?? '');
     final passCtrl    = TextEditingController();
     String rolSel     = usuario?['rol'] ?? 'rifero';
     bool   activoSel  = usuario?['activo'] != false;
@@ -173,7 +173,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
             mainAxisSize: MainAxisSize.min, children: [
               TextField(controller: nombreCtrl, decoration: const InputDecoration(labelText: "Nombre completo")),
               const SizedBox(height: 8),
-              TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Email"), keyboardType: TextInputType.emailAddress),
+              TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Username"), keyboardType: TextInputType.text),
               const SizedBox(height: 8),
               if (esNuevo) ...[
                 TextField(controller: passCtrl, decoration: const InputDecoration(labelText: "Contraseña"), obscureText: true),
@@ -207,18 +207,18 @@ class _UsuariosPageState extends State<UsuariosPage> {
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white),
               onPressed: () async {
                 final nombre = nombreCtrl.text.trim();
-                final email = emailCtrl.text.trim();
+                final username = emailCtrl.text.trim();
                 final pass = passCtrl.text.trim();
-                if (nombre.isEmpty || email.isEmpty || (esNuevo && pass.isEmpty)) {
+                if (nombre.isEmpty || username.isEmpty || (esNuevo && pass.isEmpty)) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Completa todos los campos"), backgroundColor: Colors.orange));
                   return;
                 }
                 Navigator.pop(ctx);
                 try {
                   if (esNuevo) {
-                    await UsuariosService.crearUsuario(nombre: nombre, email: email, password: pass, rol: rolSel);
+                    await UsuariosService.crearUsuario(username: username, nombre: nombre, password: pass, rol: rolSel);
                   } else {
-                    await UsuariosService.editarUsuario(usuario!['id'].toString(), nombre: nombre, email: email, rol: rolSel, activo: activoSel);
+                    await UsuariosService.editarUsuario(usuario!['id'].toString(), nombre: nombre, rol: rolSel, activo: activoSel);
                   }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(esNuevo ? "Usuario creado ✓" : "Usuario actualizado ✓"), backgroundColor: Colors.green));
@@ -321,4 +321,3 @@ class _UsuariosPageState extends State<UsuariosPage> {
         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white)),
     ]));
 }
-
