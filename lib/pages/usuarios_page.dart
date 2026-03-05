@@ -53,10 +53,11 @@ class _UsuariosPageState extends State<UsuariosPage> {
   Widget _badgeRol(String? rol) {
     late Color bg, fg;
     switch (rol) {
-      case 'admin':   bg = const Color(0xFFD4EDDA); fg = const Color(0xFF155724); break;
-      case 'central': bg = const Color(0xFFCCE5FF); fg = const Color(0xFF004085); break;
-      case 'rifero':  bg = const Color(0xFFFFF3CD); fg = const Color(0xFF856404); break;
-      default:        bg = const Color(0xFFE2E3E5); fg = const Color(0xFF383D41);
+      case 'admin':    bg = const Color(0xFFD4EDDA); fg = const Color(0xFF155724); break;
+      case 'central':  bg = const Color(0xFFCCE5FF); fg = const Color(0xFF004085); break;
+      case 'rifero':   bg = const Color(0xFFFFF3CD); fg = const Color(0xFF856404); break;
+      case 'vendedor': bg = const Color(0xFFE8D5FF); fg = const Color(0xFF6A0DAD); break;
+      default:         bg = const Color(0xFFE2E3E5); fg = const Color(0xFF383D41);
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -175,8 +176,16 @@ class _UsuariosPageState extends State<UsuariosPage> {
               const SizedBox(height: 8),
               TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Username"), keyboardType: TextInputType.text),
               const SizedBox(height: 8),
-              if (esNuevo) ...[
+              if (esNuevo) ...[ 
                 TextField(controller: passCtrl, decoration: const InputDecoration(labelText: "Contraseña"), obscureText: true),
+                const SizedBox(height: 8),
+              ] else ...[
+                TextField(
+                  controller: passCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "Nueva contraseña",
+                    hintText: "Dejar vacío para no cambiar"),
+                  obscureText: true),
                 const SizedBox(height: 8),
               ],
               DropdownButtonFormField<String>(
@@ -210,8 +219,12 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 final nombre = nombreCtrl.text.trim();
                 final username = emailCtrl.text.trim();
                 final pass = passCtrl.text.trim();
-                if (nombre.isEmpty || username.isEmpty || (esNuevo && pass.isEmpty)) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Completa todos los campos"), backgroundColor: Colors.orange));
+                if (nombre.isEmpty || username.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nombre y username son requeridos"), backgroundColor: Colors.orange));
+                  return;
+                }
+                if (esNuevo && pass.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La contraseña es requerida"), backgroundColor: Colors.orange));
                   return;
                 }
                 Navigator.pop(ctx);
@@ -219,7 +232,13 @@ class _UsuariosPageState extends State<UsuariosPage> {
                   if (esNuevo) {
                     await UsuariosService.crearUsuario(username: username, nombre: nombre, password: pass, rol: rolSel);
                   } else {
-                    await UsuariosService.editarUsuario(usuario!['id'].toString(), nombre: nombre, rol: rolSel, activo: activoSel);
+                    await UsuariosService.editarUsuario(
+                      usuario!['id'].toString(),
+                      nombre:   nombre,
+                      rol:      rolSel,
+                      activo:   activoSel,
+                      password: pass.isNotEmpty ? pass : null,
+                    );
                   }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(esNuevo ? "Usuario creado ✓" : "Usuario actualizado ✓"), backgroundColor: Colors.green));
