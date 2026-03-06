@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../layout/app_layout.dart';
+import '../services/bancas_service.dart';
+import '../models/banca.dart';
 import '../services/usuarios_service.dart';
 
 class UsuariosPage extends StatefulWidget {
@@ -12,13 +14,22 @@ class _UsuariosPageState extends State<UsuariosPage> {
   List<dynamic> _usuarios = [];
   bool   _loading  = true;
   String _error    = "";
-  String _idPropio = ""; // id del admin logueado
+  String _idPropio  = ""; // id del admin logueado
+  List<Banca> _bancas = [];  // para el selector
 
   @override
   void initState() {
     super.initState();
     _cargar();
     _cargarIdPropio();
+    _cargarBancas();
+  }
+
+  Future<void> _cargarBancas() async {
+    try {
+      final b = await BancasService.obtenerBancas();
+      if (mounted) setState(() => _bancas = b);
+    } catch (_) {}
   }
 
   Future<void> _cargarIdPropio() async {
@@ -177,6 +188,16 @@ class _UsuariosPageState extends State<UsuariosPage> {
     String rolSel     = usuario?['rol'] ?? 'rifero';
     bool   activoSel  = usuario?['activo'] != false;
 
+    // Banca asignada: buscarla en la lista de bancas del usuario
+    String? bancaIdSel;
+    final bancasUsuario = usuario?['bancas'] as List?;
+    if (bancasUsuario != null && bancasUsuario.isNotEmpty) {
+      final primera = bancasUsuario.firstWhere(
+        (b) => b != null && b['banca_id'] != null,
+        orElse: () => null);
+      if (primera != null) bancaIdSel = primera['banca_id']?.toString();
+    }
+
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -229,6 +250,30 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 ],
                 onChanged: (v) => setModalState(() => rolSel = v!),
               ),
+              // Selector de banca (solo para vendedores)
+              if (rolSel == 'vendedor') ...[ 
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String?>(
+                  value: _bancas.any((b) => b.id == bancaIdSel) ? bancaIdSel : null,
+                  decoration: InputDecoration(
+                    labelText: "Banca asignada",
+                    hintText: "Seleccionar banca",
+                    prefixIcon: const Icon(Icons.storefront, size: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text("-- Sin banca --",
+                            style: TextStyle(color: Colors.grey))),
+                    ..._bancas.map((b) => DropdownMenuItem<String?>(
+                        value: b.id,
+                        child: Text(b.nombre))),
+                  ],
+                  onChanged: (v) => setModalState(() => bancaIdSel = v),
+                ),
+              ],
               if (!esNuevo) ...[
                 const SizedBox(height: 8),
                 SwitchListTile(
@@ -272,7 +317,16 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 Navigator.pop(ctx);
                 try {
                   if (esNuevo) {
-                    await UsuariosService.crearUsuario(username: username, nombre: nombre, password: pass, rol: rolSel);
+                    final nuevo = await UsuariosService.crearUsuarioConRespuesta(
+                        username: username, nombre: nombre, password: pass, rol: rolSel);
+                    // Asignar banca si es vendedor
+                    if (rolSel == 'vendedor' && bancaIdSel != null) {
+                      final nuevoId = nuevo['usuario']?['id']?.toString();
+                      if (nuevoId != null) {
+                        await UsuariosService.asignarBanca(
+                            usuarioId: nuevoId, bancaId: bancaIdSel!);
+                      }
+                    }
                   } else {
                     await UsuariosService.editarUsuario(
                       usuario!['id'].toString(),
@@ -283,6 +337,11 @@ class _UsuariosPageState extends State<UsuariosPage> {
                       password:        pass.isNotEmpty ? pass : null,
                       passwordActual:  (esPropio && pass.isNotEmpty) ? passActual : null,
                     );
+                    // Asignar/cambiar banca si es vendedor
+                    if (rolSel == 'vendedor' && bancaIdSel != null) {
+                      await UsuariosService.asignarBanca(
+                          usuarioId: usuario!['id'].toString(), bancaId: bancaIdSel!);
+                    }
                   }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(esNuevo ? "Usuario creado ✓" : "Usuario actualizado ✓"), backgroundColor: Colors.green));
@@ -375,13 +434,3 @@ class _UsuariosPageState extends State<UsuariosPage> {
   Widget _emptyView() => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(Icons.people_outline, size: 56, color: Colors.grey.shade300),
-      const SizedBox(height: 14),
-      Text("No hay usuarios registrados", style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
-      const SizedBox(height: 20),
-      ElevatedButton.icon(
-        onPressed: () => _mostrarFormulario(),
-        icon: const Icon(Icons.add),
-        label: const Text("Nuevo Usuario"),
-        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white)),
-    ]));
-}

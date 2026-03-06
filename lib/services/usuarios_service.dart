@@ -58,6 +58,22 @@ class UsuariosService {
 
   // ── POST /api/admin/usuarios ──────────────────────────
   // Campos: username (no email), password, nombre, rol
+  // Igual que crearUsuario pero retorna el objeto { usuario: {...} }
+  static Future<Map<String, dynamic>> crearUsuarioConRespuesta({
+    required String username,
+    required String password,
+    required String nombre,
+    required String rol,
+  }) async {
+    final data = await _fetch('/admin/usuarios', method: 'POST', body: {
+      'username': username,
+      'password': password,
+      'nombre':   nombre,
+      'rol':      rol,
+    });
+    return data is Map<String, dynamic> ? data : {};
+  }
+
   static Future<void> crearUsuario({
     required String username,
     required String password,
@@ -80,6 +96,25 @@ class UsuariosService {
     if (raw == null) return null;
     final map = jsonDecode(raw) as Map<String, dynamic>;
     return map['id']?.toString();
+  }
+
+  // ── POST /api/admin/usuarios/:id/bancas ──────────────
+  // Asigna un vendedor a una banca (modalidades Q/P/T/SP)
+  static Future<void> asignarBanca({
+    required String usuarioId,
+    required String bancaId,
+  }) async {
+    // Asignar para todas las modalidades sin restricción de comisión
+    for (final modalidad in ['Q', 'P', 'T', 'SP']) {
+      await _fetch('/admin/usuarios/$usuarioId/bancas',
+        method: 'POST',
+        body: {
+          'banca_id':         bancaId,
+          'modalidad':        modalidad,
+          'porcentaje_bruto': 0,
+          'porcentaje_neto':  0,
+        });
+    }
   }
 
   static Future<void> editarUsuario(
