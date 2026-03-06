@@ -48,11 +48,17 @@ class UsuariosService {
     return data;
   }
 
+  // ── GET /api/admin/usuarios ───────────────────────────
   static Future<List<dynamic>> obtenerUsuarios() async {
     final data = await _fetch('/admin/usuarios');
+    // La API devuelve { usuarios: [...] }
+    // Cada usuario tiene: id, username, nombre, rol, activo, created_at, bancas
     return (data['usuarios'] as List?) ?? [];
   }
 
+  // ── POST /api/admin/usuarios ──────────────────────────
+  // Campos: username (no email), password, nombre, rol
+  // Igual que crearUsuario pero retorna el objeto { usuario: {...} }
   static Future<Map<String, dynamic>> crearUsuarioConRespuesta({
     required String username,
     required String password,
@@ -65,9 +71,25 @@ class UsuariosService {
       'nombre':   nombre,
       'rol':      rol,
     });
-    return data is Map<String, dynamic> ? data : {};
+    return data is Map<String, dynamic> ? data : <String, dynamic>{};
   }
 
+  static Future<void> crearUsuario({
+    required String username,
+    required String password,
+    required String nombre,
+    required String rol,
+  }) async {
+    await _fetch('/admin/usuarios', method: 'POST', body: {
+      'username': username,
+      'password': password,
+      'nombre':   nombre,
+      'rol':      rol,
+    });
+  }
+
+  // ── PATCH /api/admin/usuarios/:id ─────────────────────
+  // Retorna el id del usuario actualmente logueado
   static Future<String?> obtenerIdPropio() async {
     final p = await SharedPreferences.getInstance();
     final raw = p.getString('usuario');
@@ -76,20 +98,23 @@ class UsuariosService {
     return map['id']?.toString();
   }
 
+  // ── POST /api/admin/usuarios/:id/bancas ──────────────
+  // Asigna un vendedor a una banca (modalidades Q/P/T/SP)
   static Future<void> asignarBanca({
     required String usuarioId,
     required String bancaId,
   }) async {
-    // Ejecutamos las 4 modalidades en paralelo para mayor eficiencia
-    final modalidades = ['Q', 'P', 'T', 'SP'];
-    await Future.wait(modalidades.map((m) => _fetch('/admin/usuarios/$usuarioId/bancas',
-      method: 'POST',
-      body: {
-        'banca_id':         bancaId,
-        'modalidad':        m,
-        'porcentaje_bruto': 0,
-        'porcentaje_neto':  0,
-      })));
+    // Asignar para todas las modalidades sin restricción de comisión
+    for (final modalidad in ['Q', 'P', 'T', 'SP']) {
+      await _fetch('/admin/usuarios/$usuarioId/bancas',
+        method: 'POST',
+        body: {
+          'banca_id':         bancaId,
+          'modalidad':        modalidad,
+          'porcentaje_bruto': 0,
+          'porcentaje_neto':  0,
+        });
+    }
   }
 
   static Future<void> editarUsuario(
@@ -99,7 +124,7 @@ class UsuariosService {
     String? rol,
     bool?   activo,
     String? password,
-    String? passwordActual,
+    String? passwordActual, // requerido solo si el admin edita su propia cuenta
   }) async {
     final body = <String, dynamic>{};
     if (nombre         != null) body['nombre']           = nombre;
