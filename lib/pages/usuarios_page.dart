@@ -434,4 +434,14 @@ class _UsuariosPageState extends State<UsuariosPage> {
 
   Widget _emptyView() => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.people_out
+      Icon(Icons.people_outline, size: 56, color: Colors.grey.shade300),
+      const SizedBox(height: 14),
+      Text("No hay usuarios registrados", style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
+      const SizedBox(height: 20),
+      ElevatedButton.icon(
+        onPressed: () => _mostrarFormulario(),
+        icon: const Icon(Icons.add),
+        label: const Text("Nuevo Usuario"),
+        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white)),
+    ]));
+}
