@@ -38,8 +38,8 @@ class _LimitesPageState extends State<LimitesPage> {
 
   void _navegar(BuildContext ctx, int i) {
     const rutas = [
-      '/menu', '/bancas', '/premios', '/reportes',
-      '/usuarios', '/limites', '/configuracion',
+      '/menu', '/bancas', '/venta', '/premios',
+      '/reportes', '/usuarios', '/limites', '/configuracion',
     ];
     if (rutas[i] != '/limites') Navigator.pushReplacementNamed(ctx, rutas[i]);
   }
@@ -131,7 +131,7 @@ class _LimitesPageState extends State<LimitesPage> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      selectedIndex: 5,
+      selectedIndex: 6,
       onItemSelected: (i) => _navegar(context, i),
       child: Column(children: [
 
