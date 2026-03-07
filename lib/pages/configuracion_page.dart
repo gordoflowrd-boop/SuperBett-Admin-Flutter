@@ -63,7 +63,7 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      selectedIndex: 6,
+      selectedIndex: 7,
       onItemSelected: (i) => _onSelect(context, i),
       child: Column(children: [
 
