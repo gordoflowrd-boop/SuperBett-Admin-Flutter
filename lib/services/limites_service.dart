@@ -22,13 +22,19 @@ class LoteriasModel {
     this.limiteSp,
   });
 
+  static double? _toDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+
   factory LoteriasModel.fromJson(Map<String, dynamic> j) => LoteriasModel(
-        id:       j['id']      as String,
-        nombre:   j['nombre']  as String,
-        limiteQ:  (j['limite_q']  as num?)?.toDouble(),
-        limiteP:  (j['limite_p']  as num?)?.toDouble(),
-        limiteT:  (j['limite_t']  as num?)?.toDouble(),
-        limiteSp: (j['limite_sp'] as num?)?.toDouble(),
+        id:       j['id']     as String,
+        nombre:   j['nombre'] as String,
+        limiteQ:  _toDouble(j['limite_q']),
+        limiteP:  _toDouble(j['limite_p']),
+        limiteT:  _toDouble(j['limite_t']),
+        limiteSp: _toDouble(j['limite_sp']),
       );
 }
 
