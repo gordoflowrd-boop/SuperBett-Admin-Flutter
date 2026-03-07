@@ -15,39 +15,32 @@ class ConfiguracionService {
     "Authorization": "Bearer $token",
   };
 
-  static Future<Map<String, dynamic>> _fetch(
-    String path, {
-    String method = 'GET',
-    Map<String, dynamic>? body,
-  }) async {
+  // Lee tiempo_anulacion desde /admin/configuracion (no requiere banca)
+  static Future<int> obtenerTiempoAnulacion() async {
     final token = await _token();
-    final uri   = Uri.parse('$_kApi$path');
-    http.Response r;
-    if (method == 'PUT') {
-      r = await http.put(uri, headers: _headers(token), body: jsonEncode(body ?? {}));
-    } else {
-      r = await http.get(uri, headers: _headers(token));
-    }
+    final r = await http.get(
+      Uri.parse('$_kApi/admin/configuracion'),
+      headers: _headers(token),
+    );
     final data = jsonDecode(r.body) as Map<String, dynamic>;
     if (!r.statusCode.toString().startsWith('2')) {
-      throw Exception(data['error'] ?? data['mensaje'] ?? 'Error ${r.statusCode}');
+      throw Exception(data['error'] ?? 'Error ${r.statusCode}');
     }
-    return data;
+    final config = data['config'] as Map? ?? {};
+    return int.tryParse(config['tiempo_anulacion']?.toString() ?? '0') ?? 0;
   }
 
-  // Lee tiempo_anulacion desde /bancas/config
-  static Future<int> obtenerTiempoAnulacion() async {
-    final data  = await _fetch('/bancas/config');
-    final banca = data['banca'] as Map? ?? {};
-    return int.tryParse(banca['tiempo_anulacion']?.toString() ?? '0') ?? 0;
-  }
-
-  // Guarda tiempo_anulacion (solo admin)
+  // Guarda tiempo_anulacion en /admin/configuracion
   static Future<void> guardarTiempoAnulacion(int minutos) async {
-    await _fetch(
-      '/bancas/config/tiempo-anulacion',
-      method: 'PUT',
-      body: {'tiempo_anulacion': minutos},
+    final token = await _token();
+    final r = await http.put(
+      Uri.parse('$_kApi/admin/configuracion'),
+      headers: _headers(token),
+      body: jsonEncode({'tiempo_anulacion': minutos}),
     );
+    final data = jsonDecode(r.body) as Map<String, dynamic>;
+    if (!r.statusCode.toString().startsWith('2')) {
+      throw Exception(data['error'] ?? 'Error ${r.statusCode}');
+    }
   }
 }
