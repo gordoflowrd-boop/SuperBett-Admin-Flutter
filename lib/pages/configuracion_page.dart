@@ -328,8 +328,8 @@ class _TabEsquemaState extends State<_TabEsquema> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: _esPrecios
-                  ? _PreciosEditor(esquema: _precios[_selIdx], onSaved: _cargar)
-                  : _PagosEditor(esquema: _pagos[_selIdx], onSaved: _cargar),
+                  ? _PreciosEditor(key: ValueKey(_precios[_selIdx].id), esquema: _precios[_selIdx], onSaved: _cargar)
+                  : _PagosEditor(key: ValueKey(_pagos[_selIdx].id), esquema: _pagos[_selIdx], onSaved: _cargar),
             ))),
     ]);
   }
