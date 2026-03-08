@@ -17,7 +17,7 @@ class _ConfiguracionPageState extends State<ConfiguracionPage>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 3, vsync: this);
+    _tab = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -55,9 +55,10 @@ class _ConfiguracionPageState extends State<ConfiguracionPage>
             unselectedLabelColor: Colors.white60,
             labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             tabs: const [
-              Tab(icon: Icon(Icons.timer_outlined,    size: 18), text: "Anulaciones"),
-              Tab(icon: Icon(Icons.attach_money,      size: 18), text: "Precios"),
-              Tab(icon: Icon(Icons.emoji_events_outlined, size: 18), text: "Pagos"),
+              Tab(icon: Icon(Icons.timer_outlined,       size: 18), text: "Anulaciones"),
+              Tab(icon: Icon(Icons.attach_money,         size: 18), text: "Precios"),
+              Tab(icon: Icon(Icons.emoji_events_outlined,size: 18), text: "Pagos"),
+              Tab(icon: Icon(Icons.calendar_today,       size: 18), text: "Jornadas"),
             ],
           ),
         ]),
@@ -70,6 +71,7 @@ class _ConfiguracionPageState extends State<ConfiguracionPage>
           _TabAnulacion(),
           _TabEsquema(tipo: 'precios'),
           _TabEsquema(tipo: 'pagos'),
+          _TabJornadas(),
         ],
       )),
     ]),
@@ -603,4 +605,271 @@ class _PagosEditorState extends State<_PagosEditor> {
 
   String _nombreMod(String m) =>
       {'Q':'Quiniela','P':'Palé','T':'Tripleta','SP':'Super Palé'}[m] ?? m;
+}
+
+// ═════════════════════════════════════════════
+// TAB 4 — JORNADAS
+// ═════════════════════════════════════════════
+class _TabJornadas extends StatefulWidget {
+  const _TabJornadas();
+  @override State<_TabJornadas> createState() => _TabJornadasState();
+}
+
+class _TabJornadasState extends State<_TabJornadas> {
+  final _horaCtrl = TextEditingController();
+  List<Map<String, dynamic>> _loterias = [];
+  bool   _loading   = true;
+  bool   _guardando = false;
+  String _msg       = '';
+  String _error     = '';
+
+  // controllers por loteria id
+  final Map<String, TextEditingController> _inicioCtrl  = {};
+  final Map<String, TextEditingController> _cierreCtrl  = {};
+  final Map<String, String>                _zonaVal     = {};
+
+  static const _zonas = [
+    'America/Santo_Domingo',
+    'America/New_York',
+    'America/Chicago',
+    'America/Los_Angeles',
+  ];
+
+  @override
+  void initState() { super.initState(); _cargar(); }
+
+  @override
+  void dispose() {
+    _horaCtrl.dispose();
+    for (final c in _inicioCtrl.values) c.dispose();
+    for (final c in _cierreCtrl.values) c.dispose();
+    super.dispose();
+  }
+
+  Future<void> _cargar() async {
+    setState(() { _loading = true; _error = ''; });
+    try {
+      final hora  = await ConfiguracionService.obtenerHoraJornada();
+      final lista = await ConfiguracionService.obtenerLoterias();
+      _horaCtrl.text = hora.toString();
+
+      // Inicializar controllers por lotería
+      for (final l in lista) {
+        final id = l['id'].toString();
+        _inicioCtrl[id] = TextEditingController(text: _fmtHora(l['hora_inicio']));
+        _cierreCtrl[id] = TextEditingController(text: _fmtHora(l['hora_cierre']));
+        _zonaVal[id]    = l['zona_horaria'] ?? 'America/Santo_Domingo';
+      }
+      setState(() { _loterias = lista; _loading = false; });
+    } catch (e) {
+      setState(() { _loading = false; _error = e.toString(); });
+    }
+  }
+
+  // Formatea "07:30:00" → "07:30"
+  String _fmtHora(dynamic h) {
+    if (h == null) return '';
+    final parts = h.toString().split(':');
+    if (parts.length >= 2) return '${parts[0]}:${parts[1]}';
+    return h.toString();
+  }
+
+  Future<void> _guardarHoraJornada() async {
+    final h = int.tryParse(_horaCtrl.text.trim());
+    if (h == null || h < 0 || h > 23) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Hora inválida (0-23)"), backgroundColor: Colors.red));
+      return;
+    }
+    setState(() { _guardando = true; _msg = ''; _error = ''; });
+    try {
+      await ConfiguracionService.guardarHoraJornada(h!);
+      setState(() { _guardando = false; _msg = '✓ Hora de jornada guardada'; });
+    } catch (e) {
+      setState(() { _guardando = false; _error = e.toString(); });
+    }
+  }
+
+  Future<void> _guardarLoteria(String id) async {
+    try {
+      await ConfiguracionService.guardarHorarioLoteria(
+        id,
+        _inicioCtrl[id]!.text.trim(),
+        _cierreCtrl[id]!.text.trim(),
+        _zonaVal[id] ?? 'America/Santo_Domingo',
+      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("✓ Horario guardado"), backgroundColor: Colors.green));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _loading
+    ? const Center(child: CircularProgressIndicator())
+    : RefreshIndicator(
+        onRefresh: _cargar,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+            // ── Hora generación jornadas ────────────
+            Row(children: const [
+              Icon(Icons.schedule, color: Color(0xFF1A237E), size: 20),
+              SizedBox(width: 8),
+              Text("Generación automática de jornadas",
+                  style: TextStyle(fontWeight: FontWeight.bold,
+                      fontSize: 14, color: Color(0xFF1A237E))),
+              SizedBox(width: 8),
+              Expanded(child: Divider(color: Color(0xFF1A237E))),
+            ]),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200)),
+              child: Text(
+                "Hora en que el sistema genera automáticamente las jornadas del día. "
+                "Aplica al próximo reinicio del servidor.",
+                style: TextStyle(color: Colors.blue.shade800, fontSize: 12)),
+            ),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: TextField(
+                controller: _horaCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2)],
+                decoration: const InputDecoration(
+                  labelText: "Hora (0-23 hora RD)",
+                  hintText: "2",
+                  prefixIcon: Icon(Icons.access_time),
+                  suffixText: ":00 AM/PM",
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              )),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: _guardando ? null : _guardarHoraJornada,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A237E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                child: _guardando
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("Guardar"),
+              ),
+            ]),
+
+            if (_msg.isNotEmpty) Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(_msg, style: const TextStyle(
+                  color: Colors.green, fontWeight: FontWeight.bold))),
+            if (_error.isNotEmpty) Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(_error, style: const TextStyle(color: Colors.red))),
+
+            const SizedBox(height: 24),
+
+            // ── Horarios por lotería ────────────────
+            Row(children: const [
+              Icon(Icons.list_alt, color: Color(0xFF1A237E), size: 20),
+              SizedBox(width: 8),
+              Text("Horarios por Lotería",
+                  style: TextStyle(fontWeight: FontWeight.bold,
+                      fontSize: 14, color: Color(0xFF1A237E))),
+              SizedBox(width: 8),
+              Expanded(child: Divider(color: Color(0xFF1A237E))),
+            ]),
+            const SizedBox(height: 12),
+
+            for (final l in _loterias) ...[
+              _buildLoteriaCard(l),
+              const SizedBox(height: 12),
+            ],
+          ]),
+        ));
+
+  Widget _buildLoteriaCard(Map<String, dynamic> l) {
+    final id = l['id'].toString();
+    return Container(
+      decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(10),
+          color: Colors.white),
+      padding: const EdgeInsets.all(12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Nombre lotería
+        Row(children: [
+          const Icon(Icons.casino_outlined, color: Color(0xFF1A237E), size: 18),
+          const SizedBox(width: 8),
+          Text(l['nombre'] ?? '',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        ]),
+        const SizedBox(height: 10),
+
+        // Hora inicio / cierre
+        Row(children: [
+          Expanded(child: TextField(
+            controller: _inicioCtrl[id],
+            decoration: const InputDecoration(
+              labelText: "Hora inicio",
+              hintText: "07:30",
+              prefixIcon: Icon(Icons.play_arrow, size: 18),
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: TextField(
+            controller: _cierreCtrl[id],
+            decoration: const InputDecoration(
+              labelText: "Hora cierre",
+              hintText: "23:59",
+              prefixIcon: Icon(Icons.stop, size: 18),
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          )),
+        ]),
+        const SizedBox(height: 8),
+
+        // Zona horaria
+        DropdownButtonFormField<String>(
+          value: _zonas.contains(_zonaVal[id]) ? _zonaVal[id] : _zonas[0],
+          decoration: const InputDecoration(
+            labelText: "Zona horaria",
+            prefixIcon: Icon(Icons.public, size: 18),
+            border: OutlineInputBorder(),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          ),
+          items: _zonas.map((z) => DropdownMenuItem(
+              value: z,
+              child: Text(z.replaceAll('America/', ''),
+                  style: const TextStyle(fontSize: 13)))).toList(),
+          onChanged: (v) => setState(() => _zonaVal[id] = v ?? _zonas[0]),
+        ),
+        const SizedBox(height: 10),
+
+        // Botón guardar
+        SizedBox(width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => _guardarLoteria(id),
+            icon: const Icon(Icons.save_outlined, size: 16),
+            label: const Text("Guardar"),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A237E),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 10)),
+          )),
+      ]),
+    );
+  }
 }
