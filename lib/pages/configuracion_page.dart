@@ -341,7 +341,7 @@ class _TabEsquemaState extends State<_TabEsquema> {
 class _PreciosEditor extends StatefulWidget {
   final EsquemaPrecio esquema;
   final VoidCallback onSaved;
-  const _PreciosEditor({required this.esquema, required this.onSaved});
+  const _PreciosEditor({super.key, required this.esquema, required this.onSaved});
   @override State<_PreciosEditor> createState() => _PreciosEditorState();
 }
 
@@ -463,7 +463,7 @@ class _PreciosEditorState extends State<_PreciosEditor> {
 class _PagosEditor extends StatefulWidget {
   final EsquemaPago esquema;
   final VoidCallback onSaved;
-  const _PagosEditor({required this.esquema, required this.onSaved});
+  const _PagosEditor({super.key, required this.esquema, required this.onSaved});
   @override State<_PagosEditor> createState() => _PagosEditorState();
 }
 
