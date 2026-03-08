@@ -620,6 +620,7 @@ class _TabJornadas extends StatefulWidget {
 class _TabJornadasState extends State<_TabJornadas> {
   final _horaCtrl = TextEditingController();
   List<Map<String, dynamic>> _loterias = [];
+  int    _selIdx  = 0;
   bool   _loading   = true;
   bool   _guardando = false;
   String _msg = '', _error = '';
@@ -716,7 +717,7 @@ class _TabJornadasState extends State<_TabJornadas> {
 
             const SizedBox(height: 24),
 
-            // ── Horarios semanales por lotería ──────
+            // ── Selector de lotería ─────────────────
             _seccion(Icons.calendar_month, "Horarios semanales"),
             const SizedBox(height: 4),
             Container(
@@ -731,12 +732,32 @@ class _TabJornadasState extends State<_TabJornadas> {
             ),
             const SizedBox(height: 12),
 
-            for (final l in _loterias) ...[
-              _LoteriaHorarioCard(
-                  key: ValueKey(l['id']),
-                  loteria: l,
-                  onSaved: () => _snack("✓ Guardado", true)),
+            // Dropdown selector de lotería
+            if (_loterias.isNotEmpty) ...[
+              DropdownButtonFormField<int>(
+                value: _selIdx,
+                decoration: const InputDecoration(
+                  labelText: "Lotería",
+                  prefixIcon: Icon(Icons.casino_outlined),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                ),
+                items: List.generate(_loterias.length, (i) => DropdownMenuItem(
+                  value: i,
+                  child: Text(_loterias[i]['nombre'] ?? '',
+                      style: const TextStyle(fontSize: 14)),
+                )),
+                onChanged: (v) => setState(() => _selIdx = v ?? 0),
+              ),
               const SizedBox(height: 12),
+
+              // Tarjeta de la lotería seleccionada
+              _LoteriaHorarioCard(
+                key: ValueKey(_loterias[_selIdx]['id']),
+                loteria: _loterias[_selIdx],
+                onSaved: () => _snack("✓ Guardado", true),
+              ),
             ],
           ]),
         ));
@@ -768,10 +789,6 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
     'America/Chicago',       'America/Los_Angeles',
   ];
   static const _diasNombres = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  static const _diasColores = [
-    Color(0xFFD32F2F), Color(0xFF1565C0), Color(0xFF2E7D32),
-    Color(0xFF6A1B9A), Color(0xFFE65100), Color(0xFF00838F), Color(0xFF558B2F),
-  ];
 
   // dia_semana → controllers  (null = defecto)
   final Map<int?, TextEditingController> _inicio = {};
@@ -788,13 +805,13 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
 
   Future<Map<String, String>> _headers() async {
     final t = await ConfiguracionService.token();
-    return {'Content-Type': 'application/json', 'Authorization': 'Bearer \$t'};
+    return {'Content-Type': 'application/json', 'Authorization': 'Bearer $t'};
   }
 
   String _fmt(dynamic h) {
     if (h == null) return '';
     final p = h.toString().split(':');
-    return p.length >= 2 ? '\${p[0]}:\${p[1]}' : h.toString();
+    return p.length >= 2 ? '${p[0]}:${p[1]}' : h.toString();
   }
 
   Future<void> _cargar() async {
@@ -810,27 +827,31 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
       _inicio.clear(); _cierre.clear();
       _zona = widget.loteria['zona_horaria'] ?? 'America/Santo_Domingo';
 
-      // Inicializar los 8 slots: defecto (null) + 7 días
-      for (final key in [null, 0, 1, 2, 3, 4, 5, 6]) {
+      // Inicializar los 8 slots vacíos
+      for (final key in <int?>[null, 0, 1, 2, 3, 4, 5, 6]) {
         _inicio[key] = TextEditingController();
         _cierre[key] = TextEditingController();
       }
 
+      // Poblar con los valores de BD
       for (final row in rows) {
-        final dia = row['dia_semana'] as int?;
-        _inicio[dia]!.text = _fmt(row['hora_inicio']);
-        _cierre[dia]!.text = _fmt(row['hora_cierre']);
+        // dia_semana viene como int o null desde JSON
+        final dia = row['dia_semana'] == null
+            ? null
+            : (row['dia_semana'] as num).toInt();
+        _inicio[dia]?.text = _fmt(row['hora_inicio']);
+        _cierre[dia]?.text = _fmt(row['hora_cierre']);
       }
 
       setState(() => _cargando = false);
-    } catch (_) {
+    } catch (e) {
       setState(() => _cargando = false);
     }
   }
 
   Future<void> _guardarDia(int? dia) async {
-    final ini = _inicio[dia]!.text.trim();
-    final cie = _cierre[dia]!.text.trim();
+    final ini = _inicio[dia]?.text.trim() ?? '';
+    final cie = _cierre[dia]?.text.trim() ?? '';
     if (ini.isEmpty || cie.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Completa hora inicio y cierre"),
@@ -841,11 +862,9 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
       final id = widget.loteria['id'].toString();
       final h  = await _headers();
 
-      // Guardar zona
       await http.patch(Uri.parse('$_kApi/admin/loterias/$id/zona'),
           headers: h, body: jsonEncode({'zona_horaria': _zona}));
 
-      // Guardar horario del día
       final r = await http.put(Uri.parse('$_kApi/admin/loterias/$id/horarios'),
           headers: h,
           body: jsonEncode({
@@ -915,23 +934,18 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
         ]));
 
   Widget _filaDia(int? dia) {
-    final label = dia == null ? 'Defecto' : _diasNombres[dia];
-    final color = dia == null ? Colors.blueGrey : _diasColores[dia];
+    final label = dia == null ? 'Def.' : _diasNombres[dia];
+    final isDef  = dia == null;
     return Row(children: [
-      // Etiqueta del día
-      SizedBox(width: 52,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6)),
-          child: Text(label,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: color,
-                  fontWeight: FontWeight.bold, fontSize: 12)),
-        )),
+      SizedBox(width: 40,
+        child: Text(label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDef ? Colors.grey.shade600 : Colors.black87,
+            ))),
       const SizedBox(width: 8),
-      // Hora inicio
       Expanded(child: TextField(
         controller: _inicio[dia],
         decoration: const InputDecoration(
@@ -939,10 +953,9 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
             border: OutlineInputBorder(), isDense: true,
             contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
       )),
-      const SizedBox(width: 6),
-      const Text("—", style: TextStyle(color: Colors.grey)),
-      const SizedBox(width: 6),
-      // Hora cierre
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4),
+        child: Text("–", style: TextStyle(color: Colors.grey))),
       Expanded(child: TextField(
         controller: _cierre[dia],
         decoration: const InputDecoration(
@@ -950,12 +963,11 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
             border: OutlineInputBorder(), isDense: true,
             contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
       )),
-      const SizedBox(width: 8),
-      // Guardar
       IconButton(
-        icon: const Icon(Icons.save_outlined, size: 20),
+        icon: const Icon(Icons.save_outlined, size: 18),
         color: const Color(0xFF1A237E),
-        tooltip: "Guardar",
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
         onPressed: () => _guardarDia(dia),
       ),
     ]);
