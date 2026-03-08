@@ -922,10 +922,6 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
           ),
           const SizedBox(height: 14),
 
-          // ── Defecto ─────────────────────────────
-          _filaDia(null),
-          const Divider(height: 20),
-
           // ── Lun–Dom ─────────────────────────────
           for (int d = 0; d < 7; d++) ...[
             _filaDia(d),
