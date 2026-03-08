@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import '../layout/app_layout.dart';
 import '../services/configuracion_service.dart';
 import '../services/esquemas_service.dart';
@@ -620,91 +622,40 @@ class _TabJornadasState extends State<_TabJornadas> {
   List<Map<String, dynamic>> _loterias = [];
   bool   _loading   = true;
   bool   _guardando = false;
-  String _msg       = '';
-  String _error     = '';
+  String _msg = '', _error = '';
 
-  // controllers por loteria id
-  final Map<String, TextEditingController> _inicioCtrl  = {};
-  final Map<String, TextEditingController> _cierreCtrl  = {};
-  final Map<String, String>                _zonaVal     = {};
-
-  static const _zonas = [
-    'America/Santo_Domingo',
-    'America/New_York',
-    'America/Chicago',
-    'America/Los_Angeles',
-  ];
-
-  @override
-  void initState() { super.initState(); _cargar(); }
-
-  @override
-  void dispose() {
-    _horaCtrl.dispose();
-    for (final c in _inicioCtrl.values) c.dispose();
-    for (final c in _cierreCtrl.values) c.dispose();
-    super.dispose();
-  }
+  @override void initState() { super.initState(); _cargar(); }
+  @override void dispose()   { _horaCtrl.dispose(); super.dispose(); }
 
   Future<void> _cargar() async {
     setState(() { _loading = true; _error = ''; });
     try {
-      final hora  = await ConfiguracionService.obtenerHoraJornada();
-      final lista = await ConfiguracionService.obtenerLoterias();
+      final hora     = await ConfiguracionService.obtenerHoraJornada();
+      final loterias = await ConfiguracionService.obtenerLoterias();
       _horaCtrl.text = hora.toString();
-
-      // Inicializar controllers por lotería
-      for (final l in lista) {
-        final id = l['id'].toString();
-        _inicioCtrl[id] = TextEditingController(text: _fmtHora(l['hora_inicio']));
-        _cierreCtrl[id] = TextEditingController(text: _fmtHora(l['hora_cierre']));
-        _zonaVal[id]    = l['zona_horaria'] ?? 'America/Santo_Domingo';
-      }
-      setState(() { _loterias = lista; _loading = false; });
+      setState(() { _loterias = loterias; _loading = false; });
     } catch (e) {
       setState(() { _loading = false; _error = e.toString(); });
     }
   }
 
-  // Formatea "07:30:00" → "07:30"
-  String _fmtHora(dynamic h) {
-    if (h == null) return '';
-    final parts = h.toString().split(':');
-    if (parts.length >= 2) return '${parts[0]}:${parts[1]}';
-    return h.toString();
-  }
-
-  Future<void> _guardarHoraJornada() async {
+  Future<void> _guardarHora() async {
     final h = int.tryParse(_horaCtrl.text.trim());
     if (h == null || h < 0 || h > 23) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Hora inválida (0-23)"), backgroundColor: Colors.red));
-      return;
+      _snack("Hora inválida (0-23)", false); return;
     }
-    setState(() { _guardando = true; _msg = ''; _error = ''; });
+    setState(() { _guardando = true; _msg = ''; });
     try {
-      await ConfiguracionService.guardarHoraJornada(h!);
-      setState(() { _guardando = false; _msg = '✓ Hora de jornada guardada'; });
+      await ConfiguracionService.guardarHoraJornada(h);
+      setState(() { _guardando = false; _msg = '✓ Hora guardada'; });
     } catch (e) {
       setState(() { _guardando = false; _error = e.toString(); });
     }
   }
 
-  Future<void> _guardarLoteria(String id) async {
-    try {
-      await ConfiguracionService.guardarHorarioLoteria(
-        id,
-        _inicioCtrl[id]!.text.trim(),
-        _cierreCtrl[id]!.text.trim(),
-        _zonaVal[id] ?? 'America/Santo_Domingo',
-      );
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("✓ Horario guardado"), backgroundColor: Colors.green));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-    }
-  }
+  void _snack(String msg, bool ok) => ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg),
+          backgroundColor: ok ? Colors.green : Colors.red));
 
   @override
   Widget build(BuildContext context) => _loading
@@ -716,16 +667,8 @@ class _TabJornadasState extends State<_TabJornadas> {
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-            // ── Hora generación jornadas ────────────
-            Row(children: const [
-              Icon(Icons.schedule, color: Color(0xFF1A237E), size: 20),
-              SizedBox(width: 8),
-              Text("Generación automática de jornadas",
-                  style: TextStyle(fontWeight: FontWeight.bold,
-                      fontSize: 14, color: Color(0xFF1A237E))),
-              SizedBox(width: 8),
-              Expanded(child: Divider(color: Color(0xFF1A237E))),
-            ]),
+            // ── Hora del cron ───────────────────────
+            _seccion(Icons.schedule, "Generación automática"),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(10),
@@ -733,11 +676,11 @@ class _TabJornadasState extends State<_TabJornadas> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.blue.shade200)),
               child: Text(
-                "Hora en que el sistema genera automáticamente las jornadas del día. "
+                "Hora en que el sistema genera las jornadas del día. "
                 "Aplica al próximo reinicio del servidor.",
-                style: TextStyle(color: Colors.blue.shade800, fontSize: 12)),
+                style: TextStyle(color: Colors.blue.shade700, fontSize: 12)),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(children: [
               Expanded(child: TextField(
                 controller: _horaCtrl,
@@ -745,131 +688,276 @@ class _TabJornadasState extends State<_TabJornadas> {
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(2)],
                 decoration: const InputDecoration(
-                  labelText: "Hora (0-23 hora RD)",
-                  hintText: "2",
+                  labelText: "Hora RD (0-23)",
                   prefixIcon: Icon(Icons.access_time),
-                  suffixText: ":00 AM/PM",
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
+                  suffixText: ":00",
+                  border: OutlineInputBorder(), isDense: true),
               )),
               const SizedBox(width: 10),
               ElevatedButton(
-                onPressed: _guardando ? null : _guardarHoraJornada,
+                onPressed: _guardando ? null : _guardarHora,
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1A237E),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
                 child: _guardando
-                    ? const SizedBox(width: 18, height: 18,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text("Guardar"),
               ),
             ]),
-
             if (_msg.isNotEmpty) Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: 6),
               child: Text(_msg, style: const TextStyle(
                   color: Colors.green, fontWeight: FontWeight.bold))),
             if (_error.isNotEmpty) Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: 6),
               child: Text(_error, style: const TextStyle(color: Colors.red))),
 
             const SizedBox(height: 24),
 
-            // ── Horarios por lotería ────────────────
-            Row(children: const [
-              Icon(Icons.list_alt, color: Color(0xFF1A237E), size: 20),
-              SizedBox(width: 8),
-              Text("Horarios por Lotería",
-                  style: TextStyle(fontWeight: FontWeight.bold,
-                      fontSize: 14, color: Color(0xFF1A237E))),
-              SizedBox(width: 8),
-              Expanded(child: Divider(color: Color(0xFF1A237E))),
-            ]),
+            // ── Horarios semanales por lotería ──────
+            _seccion(Icons.calendar_month, "Horarios semanales"),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200)),
+              child: Text(
+                "Configura el horario de cada día de la semana. "
+                "Si un día no tiene horario configurado se usa el Defecto.",
+                style: TextStyle(color: Colors.orange.shade800, fontSize: 12)),
+            ),
             const SizedBox(height: 12),
 
             for (final l in _loterias) ...[
-              _buildLoteriaCard(l),
+              _LoteriaHorarioCard(
+                  key: ValueKey(l['id']),
+                  loteria: l,
+                  onSaved: () => _snack("✓ Guardado", true)),
               const SizedBox(height: 12),
             ],
           ]),
         ));
 
-  Widget _buildLoteriaCard(Map<String, dynamic> l) {
-    final id = l['id'].toString();
-    return Container(
-      decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.white),
-      padding: const EdgeInsets.all(12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Nombre lotería
-        Row(children: [
-          const Icon(Icons.casino_outlined, color: Color(0xFF1A237E), size: 18),
-          const SizedBox(width: 8),
-          Text(l['nombre'] ?? '',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        ]),
-        const SizedBox(height: 10),
+  Widget _seccion(IconData icon, String label) => Row(children: [
+    Icon(icon, color: const Color(0xFF1A237E), size: 18),
+    const SizedBox(width: 8),
+    Text(label, style: const TextStyle(fontWeight: FontWeight.bold,
+        fontSize: 14, color: Color(0xFF1A237E))),
+    const SizedBox(width: 8),
+    const Expanded(child: Divider(color: Color(0xFF1A237E))),
+  ]);
+}
 
-        // Hora inicio / cierre
-        Row(children: [
-          Expanded(child: TextField(
-            controller: _inicioCtrl[id],
-            decoration: const InputDecoration(
-              labelText: "Hora inicio",
-              hintText: "07:30",
-              prefixIcon: Icon(Icons.play_arrow, size: 18),
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-          )),
-          const SizedBox(width: 8),
-          Expanded(child: TextField(
-            controller: _cierreCtrl[id],
-            decoration: const InputDecoration(
-              labelText: "Hora cierre",
-              hintText: "23:59",
-              prefixIcon: Icon(Icons.stop, size: 18),
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-          )),
-        ]),
-        const SizedBox(height: 8),
+// ─────────────────────────────────────────────
+// Tarjeta de horario semanal por lotería
+// ─────────────────────────────────────────────
+class _LoteriaHorarioCard extends StatefulWidget {
+  final Map<String, dynamic> loteria;
+  final VoidCallback         onSaved;
+  const _LoteriaHorarioCard({super.key, required this.loteria, required this.onSaved});
+  @override State<_LoteriaHorarioCard> createState() => _LoteriaHorarioCardState();
+}
 
-        // Zona horaria
-        DropdownButtonFormField<String>(
-          value: _zonas.contains(_zonaVal[id]) ? _zonaVal[id] : _zonas[0],
-          decoration: const InputDecoration(
-            labelText: "Zona horaria",
-            prefixIcon: Icon(Icons.public, size: 18),
-            border: OutlineInputBorder(),
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
+  static const _kApi = 'https://superbett-api-production.up.railway.app/api';
+  static const _zonas = [
+    'America/Santo_Domingo', 'America/New_York',
+    'America/Chicago',       'America/Los_Angeles',
+  ];
+  static const _diasNombres = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  static const _diasColores = [
+    Color(0xFFD32F2F), Color(0xFF1565C0), Color(0xFF2E7D32),
+    Color(0xFF6A1B9A), Color(0xFFE65100), Color(0xFF00838F), Color(0xFF558B2F),
+  ];
+
+  // dia_semana → controllers  (null = defecto)
+  final Map<int?, TextEditingController> _inicio = {};
+  final Map<int?, TextEditingController> _cierre = {};
+  String _zona = 'America/Santo_Domingo';
+  bool _cargando = true;
+
+  @override void initState() { super.initState(); _cargar(); }
+  @override void dispose() {
+    for (final c in _inicio.values) c.dispose();
+    for (final c in _cierre.values) c.dispose();
+    super.dispose();
+  }
+
+  Future<Map<String, String>> _headers() async {
+    final t = await ConfiguracionService.token();
+    return {'Content-Type': 'application/json', 'Authorization': 'Bearer \$t'};
+  }
+
+  String _fmt(dynamic h) {
+    if (h == null) return '';
+    final p = h.toString().split(':');
+    return p.length >= 2 ? '\${p[0]}:\${p[1]}' : h.toString();
+  }
+
+  Future<void> _cargar() async {
+    setState(() => _cargando = true);
+    try {
+      final id = widget.loteria['id'].toString();
+      final h  = await _headers();
+      final r  = await http.get(
+          Uri.parse('$_kApi/admin/loterias/$id/horarios'), headers: h);
+      final rows = List<Map<String, dynamic>>.from(
+          jsonDecode(r.body)['horarios'] ?? []);
+
+      _inicio.clear(); _cierre.clear();
+      _zona = widget.loteria['zona_horaria'] ?? 'America/Santo_Domingo';
+
+      // Inicializar los 8 slots: defecto (null) + 7 días
+      for (final key in [null, 0, 1, 2, 3, 4, 5, 6]) {
+        _inicio[key] = TextEditingController();
+        _cierre[key] = TextEditingController();
+      }
+
+      for (final row in rows) {
+        final dia = row['dia_semana'] as int?;
+        _inicio[dia]!.text = _fmt(row['hora_inicio']);
+        _cierre[dia]!.text = _fmt(row['hora_cierre']);
+      }
+
+      setState(() => _cargando = false);
+    } catch (_) {
+      setState(() => _cargando = false);
+    }
+  }
+
+  Future<void> _guardarDia(int? dia) async {
+    final ini = _inicio[dia]!.text.trim();
+    final cie = _cierre[dia]!.text.trim();
+    if (ini.isEmpty || cie.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Completa hora inicio y cierre"),
+          backgroundColor: Colors.red));
+      return;
+    }
+    try {
+      final id = widget.loteria['id'].toString();
+      final h  = await _headers();
+
+      // Guardar zona
+      await http.patch(Uri.parse('$_kApi/admin/loterias/$id/zona'),
+          headers: h, body: jsonEncode({'zona_horaria': _zona}));
+
+      // Guardar horario del día
+      final r = await http.put(Uri.parse('$_kApi/admin/loterias/$id/horarios'),
+          headers: h,
+          body: jsonEncode({
+            'dia_semana':  dia,
+            'hora_inicio': ini,
+            'hora_cierre': cie,
+          }));
+
+      if (r.statusCode == 200) {
+        widget.onSaved();
+      } else {
+        throw Exception(jsonDecode(r.body)['error'] ?? 'Error');
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(10),
+        color: Colors.white),
+    padding: const EdgeInsets.all(12),
+    child: _cargando
+      ? const Center(child: Padding(
+          padding: EdgeInsets.all(20),
+          child: CircularProgressIndicator()))
+      : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+          // ── Header lotería ──────────────────────
+          Row(children: [
+            const Icon(Icons.casino_outlined, color: Color(0xFF1A237E), size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(widget.loteria['nombre'] ?? '',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+          ]),
+          const SizedBox(height: 10),
+
+          // ── Zona horaria ────────────────────────
+          DropdownButtonFormField<String>(
+            value: _zonas.contains(_zona) ? _zona : _zonas[0],
+            decoration: const InputDecoration(
+              labelText: "Zona horaria",
+              prefixIcon: Icon(Icons.public, size: 18),
+              border: OutlineInputBorder(), isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+            items: _zonas.map((z) => DropdownMenuItem(
+                value: z,
+                child: Text(z.replaceAll('America/', ''),
+                    style: const TextStyle(fontSize: 13)))).toList(),
+            onChanged: (v) => setState(() => _zona = v ?? _zonas[0]),
           ),
-          items: _zonas.map((z) => DropdownMenuItem(
-              value: z,
-              child: Text(z.replaceAll('America/', ''),
-                  style: const TextStyle(fontSize: 13)))).toList(),
-          onChanged: (v) => setState(() => _zonaVal[id] = v ?? _zonas[0]),
-        ),
-        const SizedBox(height: 10),
+          const SizedBox(height: 14),
 
-        // Botón guardar
-        SizedBox(width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _guardarLoteria(id),
-            icon: const Icon(Icons.save_outlined, size: 16),
-            label: const Text("Guardar"),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A237E),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 10)),
-          )),
-      ]),
-    );
+          // ── Defecto ─────────────────────────────
+          _filaDia(null),
+          const Divider(height: 20),
+
+          // ── Lun–Dom ─────────────────────────────
+          for (int d = 0; d < 7; d++) ...[
+            _filaDia(d),
+            if (d < 6) const SizedBox(height: 8),
+          ],
+        ]));
+
+  Widget _filaDia(int? dia) {
+    final label = dia == null ? 'Defecto' : _diasNombres[dia];
+    final color = dia == null ? Colors.blueGrey : _diasColores[dia];
+    return Row(children: [
+      // Etiqueta del día
+      SizedBox(width: 52,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(6)),
+          child: Text(label,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: color,
+                  fontWeight: FontWeight.bold, fontSize: 12)),
+        )),
+      const SizedBox(width: 8),
+      // Hora inicio
+      Expanded(child: TextField(
+        controller: _inicio[dia],
+        decoration: const InputDecoration(
+            hintText: "07:30",
+            border: OutlineInputBorder(), isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+      )),
+      const SizedBox(width: 6),
+      const Text("—", style: TextStyle(color: Colors.grey)),
+      const SizedBox(width: 6),
+      // Hora cierre
+      Expanded(child: TextField(
+        controller: _cierre[dia],
+        decoration: const InputDecoration(
+            hintText: "23:59",
+            border: OutlineInputBorder(), isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+      )),
+      const SizedBox(width: 8),
+      // Guardar
+      IconButton(
+        icon: const Icon(Icons.save_outlined, size: 20),
+        color: const Color(0xFF1A237E),
+        tooltip: "Guardar",
+        onPressed: () => _guardarDia(dia),
+      ),
+    ]);
   }
 }
