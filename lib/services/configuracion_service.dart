@@ -1,14 +1,14 @@
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ConfiguracionService {
   static const String apiBase =
       'https://superbett-api-production.up.railway.app/api';
 
   static Future<String> token() async {
-    final p = await SharedPreferences.getInstance();
-    return p.getString('token') ?? '';
+    return html.window.localStorage['token'] ?? '';
   }
 
   static Map<String, String> headers(String t) => {
@@ -82,21 +82,4 @@ class ConfiguracionService {
     return List<Map<String, dynamic>>.from(data['loterias'] ?? []);
   }
 
-  static Future<void> guardarHorarioLoteria(
-      String id, String horaInicio, String horaCierre, String zona) async {
-    final t = await token();
-    final r = await http.patch(
-      Uri.parse('$apiBase/admin/loterias/$id/horario'),
-      headers: headers(t),
-      body: jsonEncode({
-        'hora_inicio':  horaInicio,
-        'hora_cierre':  horaCierre,
-        'zona_horaria': zona,
-      }),
-    );
-    if (r.statusCode != 200) {
-      final data = jsonDecode(r.body);
-      throw Exception(data['error'] ?? 'Error al guardar horario');
-    }
-  }
 }
