@@ -419,7 +419,32 @@ class _TabJornadasState extends State<_TabJornadas> {
         child: Column(children: [
           TextField(
             controller: _horaCtrl,
-            decoration: const InputDecoration(labelText: "Hora de Reinicio del Sistema (0-23)", border: OutlineInputBorder(), prefixIcon: Icon(Icons.access_time))
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: const InputDecoration(labelText: "Hora de Reinicio del Sistema (0-23)", border: OutlineInputBorder(), prefixIcon: Icon(Icons.access_time)),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A237E),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.all(15),
+              ),
+              onPressed: () async {
+                final hora = int.tryParse(_horaCtrl.text) ?? -1;
+                if (hora < 0 || hora > 23) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La hora debe estar entre 0 y 23")));
+                  return;
+                }
+                await ConfiguracionService.guardarConfiguracion({'hora_jornada': hora});
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✓ Hora de reinicio guardada")));
+                }
+              },
+              child: const Text("Guardar Hora de Reinicio"),
+            ),
           ),
           const SizedBox(height: 20),
           if (_loterias.isNotEmpty) ...[
