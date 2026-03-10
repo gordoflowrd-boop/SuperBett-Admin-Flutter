@@ -76,13 +76,13 @@ class _TabAnulacionState extends State<_TabAnulacion> {
   }
 
   @override
-  Widget build(BuildContext context) => _loading 
+  Widget build(BuildContext context) => _loading
     ? const Center(child: CircularProgressIndicator())
     : Padding(
         padding: const EdgeInsets.all(20),
         child: Column(children: [
           TextField(
-            controller: _ctrl, 
+            controller: _ctrl,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: const InputDecoration(labelText: "Minutos para anular ticket", border: OutlineInputBorder())
@@ -94,7 +94,9 @@ class _TabAnulacionState extends State<_TabAnulacion> {
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A237E), foregroundColor: Colors.white, padding: const EdgeInsets.all(15)),
               onPressed: () async {
                 await ConfiguracionService.guardarConfiguracion({'tiempo_anulacion': int.parse(_ctrl.text)});
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✓ Tiempo de anulación actualizado")));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✓ Tiempo de anulación actualizado")));
+                }
               },
               child: const Text("Guardar Cambios"),
             ),
@@ -105,7 +107,7 @@ class _TabAnulacionState extends State<_TabAnulacion> {
 
 // ── TAB 2 Y 3: ESQUEMAS (PRECIOS/PAGOS) ──────────────────────────────────
 class _TabEsquema extends StatefulWidget {
-  final String tipo; 
+  final String tipo;
   const _TabEsquema({required this.tipo});
   @override State<_TabEsquema> createState() => _TabEsquemaState();
 }
@@ -120,10 +122,10 @@ class _TabEsquemaState extends State<_TabEsquema> {
   Future<void> _cargar() async {
     setState(() => _loading = true);
     try {
-      _items = (widget.tipo == 'precios') 
-        ? await EsquemasService.getEsquemasPrecios() 
+      _items = (widget.tipo == 'precios')
+        ? await EsquemasService.getEsquemasPrecios()
         : await EsquemasService.getEsquemasPagos();
-      setState(() => _loading = false);
+      setState(() { _loading = false; _selIdx = 0; });
     } catch (e) {
       setState(() => _loading = false);
     }
@@ -146,54 +148,232 @@ class _TabEsquemaState extends State<_TabEsquema> {
       ),
       Expanded(child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
-        child: widget.tipo == 'precios' 
-          ? _EditorPrecios(esquema: _items[_selIdx], onSaved: _cargar)
-          : _EditorPagos(esquema: _items[_selIdx], onSaved: _cargar),
+        child: widget.tipo == 'precios'
+          ? _EditorPrecios(key: ValueKey(_items[_selIdx].id), esquema: _items[_selIdx], onSaved: _cargar)
+          : _EditorPagos(key: ValueKey(_items[_selIdx].id), esquema: _items[_selIdx], onSaved: _cargar),
       )),
     ]);
   }
 }
 
-class _EditorPrecios extends StatelessWidget {
-  final dynamic esquema;
+// ── EDITOR PRECIOS (StatefulWidget) ──────────────────────────────────────
+class _EditorPrecios extends StatefulWidget {
+  final EsquemaPrecio esquema;
   final VoidCallback onSaved;
-  const _EditorPrecios({required this.esquema, required this.onSaved});
+  const _EditorPrecios({super.key, required this.esquema, required this.onSaved});
+  @override State<_EditorPrecios> createState() => _EditorPreciosState();
+}
+
+class _EditorPreciosState extends State<_EditorPrecios> {
+  static const _modalidades = ['Q', 'P', 'T', 'SP'];
+  final Map<String, TextEditingController> _ctrls = {};
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    for (var m in _modalidades) {
+      final precio = _getPrecio(m);
+      _ctrls[m] = TextEditingController(text: precio == 0 ? '' : precio.toString());
+    }
+  }
+
+  @override
+  void dispose() {
+    for (var c in _ctrls.values) c.dispose();
+    super.dispose();
+  }
+
+  double _getPrecio(String modalidad) {
+    try {
+      return widget.esquema.detalle.firstWhere((d) => d.modalidad == modalidad).precio;
+    } catch (_) { return 0; }
+  }
+
+  Future<void> _guardar() async {
+    setState(() => _saving = true);
+    try {
+      for (var m in _modalidades) {
+        final val = double.tryParse(_ctrls[m]!.text) ?? 0;
+        await EsquemasService.guardarPrecio(widget.esquema.id, m, val);
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✓ Precios actualizados")));
+      }
+      widget.onSaved();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final modalidades = ['Q', 'P', 'T', 'SP'];
     return Column(children: [
-      for (var m in modalidades) 
+      for (var m in _modalidades)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: TextField(
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: "Precio $m", border: const OutlineInputBorder()),
-            controller: TextEditingController(text: esquema.getPrecio(m).toString()),
+            controller: _ctrls[m],
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: "Precio $m",
+              border: const OutlineInputBorder(),
+              prefixText: "RD\$ ",
+            ),
           ),
         ),
       const SizedBox(height: 10),
-      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: onSaved, child: const Text("Actualizar Precios")))
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A237E),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.all(15),
+          ),
+          onPressed: _saving ? null : _guardar,
+          child: _saving
+            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : const Text("Guardar Precios"),
+        ),
+      ),
     ]);
   }
 }
 
-class _EditorPagos extends StatelessWidget {
-  final dynamic esquema;
+// ── EDITOR PAGOS (StatefulWidget) ─────────────────────────────────────────
+class _EditorPagos extends StatefulWidget {
+  final EsquemaPago esquema;
   final VoidCallback onSaved;
-  const _EditorPagos({required this.esquema, required this.onSaved});
+  const _EditorPagos({super.key, required this.esquema, required this.onSaved});
+  @override State<_EditorPagos> createState() => _EditorPagosState();
+}
+
+class _EditorPagosState extends State<_EditorPagos> {
+  // modalidad -> posicion -> controller
+  static const _estructura = {
+    'Q':  [1, 2, 3],
+    'P':  [1, 2, 3],
+    'T':  [1, 2, 3],
+    'SP': [1],
+  };
+
+  static const _nombres = {
+    'Q':  'Quiniela',
+    'P':  'Pale',
+    'T':  'Tripleta',
+    'SP': 'Super Pale',
+  };
+
+  final Map<String, Map<int, TextEditingController>> _ctrls = {};
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _estructura.forEach((mod, posiciones) {
+      _ctrls[mod] = {};
+      for (var pos in posiciones) {
+        final pago = _getPago(mod, pos);
+        _ctrls[mod]![pos] = TextEditingController(text: pago == 0 ? '' : pago.toString());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    for (var m in _ctrls.values) {
+      for (var c in m.values) c.dispose();
+    }
+    super.dispose();
+  }
+
+  double _getPago(String modalidad, int posicion) {
+    try {
+      return widget.esquema.detalle.firstWhere(
+        (d) => d.modalidad == modalidad && d.posicion == posicion
+      ).pago;
+    } catch (_) { return 0; }
+  }
+
+  Future<void> _guardar() async {
+    setState(() => _saving = true);
+    try {
+      for (var entry in _ctrls.entries) {
+        final mod = entry.key;
+        for (var posEntry in entry.value.entries) {
+          final pos = posEntry.key;
+          final val = double.tryParse(posEntry.value.text) ?? 0;
+          await EsquemasService.guardarMultiplicador(widget.esquema.id, mod, pos, val);
+        }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✓ Pagos actualizados")));
+      }
+      widget.onSaved();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      const Text("Configuración de multiplicadores de pago"),
-      const SizedBox(height: 15),
-      TextField(
-        decoration: const InputDecoration(labelText: "Pago Quiniela 1ra", border: OutlineInputBorder()),
-        controller: TextEditingController(text: esquema.getPago('Q', 1).toString()),
+      ..._estructura.entries.map((entry) {
+        final mod = entry.key;
+        final posiciones = entry.value;
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_nombres[mod] ?? mod,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E), fontSize: 14)),
+                const SizedBox(height: 8),
+                for (var pos in posiciones)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: TextField(
+                      controller: _ctrls[mod]![pos],
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: posiciones.length > 1 ? "Posición $pos" : "Multiplicador",
+                        border: const OutlineInputBorder(),
+                        suffixText: "x",
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      }),
+      const SizedBox(height: 10),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A237E),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.all(15),
+          ),
+          onPressed: _saving ? null : _guardar,
+          child: _saving
+            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : const Text("Guardar Pagos"),
+        ),
       ),
-      const SizedBox(height: 20),
-      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: onSaved, child: const Text("Actualizar Pagos")))
     ]);
   }
 }
@@ -223,13 +403,13 @@ class _TabJornadasState extends State<_TabJornadas> {
   }
 
   @override
-  Widget build(BuildContext context) => _loading 
+  Widget build(BuildContext context) => _loading
     ? const Center(child: CircularProgressIndicator())
     : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
           TextField(
-            controller: _horaCtrl, 
+            controller: _horaCtrl,
             decoration: const InputDecoration(labelText: "Hora de Reinicio del Sistema (0-23)", border: OutlineInputBorder(), prefixIcon: Icon(Icons.access_time))
           ),
           const SizedBox(height: 20),
@@ -244,7 +424,7 @@ class _TabJornadasState extends State<_TabJornadas> {
               onChanged: (v) => setState(() => _selIdx = v ?? 0),
             ),
             const SizedBox(height: 20),
-            _LoteriaHorarioCard(loteria: _loterias[_selIdx]),
+            _LoteriaHorarioCard(key: ValueKey(_loterias[_selIdx]['id']), loteria: _loterias[_selIdx]),
           ]
         ]),
       );
@@ -252,54 +432,54 @@ class _TabJornadasState extends State<_TabJornadas> {
 
 class _LoteriaHorarioCard extends StatefulWidget {
   final Map<String, dynamic> loteria;
-  const _LoteriaHorarioCard({required this.loteria});
+  const _LoteriaHorarioCard({super.key, required this.loteria});
   @override State<_LoteriaHorarioCard> createState() => _LoteriaHorarioCardState();
 }
 
 class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
-  // Solo manejamos los días 0 al 6 (Dom a Sab)
   final Map<int, TextEditingController> _inicio = {};
   final Map<int, TextEditingController> _cierre = {};
   bool _loading = true;
 
   @override void initState() { super.initState(); _cargar(); }
-  @override void didUpdateWidget(_LoteriaHorarioCard old) { 
-    super.didUpdateWidget(old); 
-    if(old.loteria['id'] != widget.loteria['id']) _cargar(); 
-  }
 
   Future<void> _cargar() async {
     setState(() => _loading = true);
     final h = await ConfiguracionService.obtenerHorariosLoteria(widget.loteria['id'].toString());
-    
-    // Inicializar controladores para los 7 días
+
     for (int d = 0; d < 7; d++) {
       _inicio[d] = TextEditingController();
       _cierre[d] = TextEditingController();
     }
 
-    // Llenar solo los días que existen en la base de datos
     for (var row in h) {
       final dia = row['dia_semana'] as int?;
       if (dia != null && dia >= 0 && dia <= 6) {
-        _inicio[dia]?.text = row['hora_inicio']?.toString().substring(0,5) ?? '';
-        _cierre[dia]?.text = row['hora_cierre']?.toString().substring(0,5) ?? '';
+        _inicio[dia]?.text = row['hora_inicio']?.toString().substring(0, 5) ?? '';
+        _cierre[dia]?.text = row['hora_cierre']?.toString().substring(0, 5) ?? '';
       }
     }
     setState(() => _loading = false);
   }
 
   @override
-  Widget build(BuildContext context) => _loading 
-    ? const LinearProgressIndicator() 
+  void dispose() {
+    for (var c in _inicio.values) c.dispose();
+    for (var c in _cierre.values) c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _loading
+    ? const LinearProgressIndicator()
     : Column(children: [
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Text("Horarios semanales", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
         ),
         const Divider(),
-        // Solo mostramos del 0 al 6
-        for(int i=0; i<7; i++) _fila(i, ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][i]),
+        for (int i = 0; i < 7; i++)
+          _fila(i, ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][i]),
       ]);
 
   Widget _fila(int d, String n) => Padding(
@@ -311,15 +491,17 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
       Expanded(child: TextField(controller: _cierre[d], textAlign: TextAlign.center, decoration: const InputDecoration(hintText: "--:--", isDense: true, border: OutlineInputBorder()))),
       const SizedBox(width: 8),
       IconButton(
-        icon: const Icon(Icons.save, color: Color(0xFF1A237E), size: 22), 
+        icon: const Icon(Icons.save, color: Color(0xFF1A237E), size: 22),
         onPressed: () async {
           await ConfiguracionService.guardarHorarioLoteria(
             loteriaId: widget.loteria['id'].toString(),
-            diaSemana: d, // Enviamos el día del 0 al 6
+            diaSemana: d,
             horaInicio: _inicio[d]!.text,
             horaCierre: _cierre[d]!.text,
           );
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✓ Horario de $n guardado")));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✓ Horario de $n guardado")));
+          }
         }
       ),
     ]),
