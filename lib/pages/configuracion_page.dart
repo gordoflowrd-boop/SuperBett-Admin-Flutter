@@ -254,13 +254,9 @@ class _EditorPagos extends StatefulWidget {
 }
 
 class _EditorPagosState extends State<_EditorPagos> {
-  // modalidad -> posicion -> controller
-  static const _estructura = {
-    'Q':  [1, 2, 3],
-    'P':  [1, 2, 3],
-    'T':  [1, 2, 3],
-    'SP': [1],
-  };
+  // key: "MODALIDAD_POSICION" -> controller
+  final Map<String, TextEditingController> _ctrls = {};
+  bool _saving = false;
 
   static const _nombres = {
     'Q':  'Quiniela',
@@ -269,47 +265,51 @@ class _EditorPagosState extends State<_EditorPagos> {
     'SP': 'Super Pale',
   };
 
-  final Map<String, Map<int, TextEditingController>> _ctrls = {};
-  bool _saving = false;
-
   @override
   void initState() {
     super.initState();
-    _estructura.forEach((mod, posiciones) {
-      _ctrls[mod] = {};
-      for (var pos in posiciones) {
-        final pago = _getPago(mod, pos);
-        _ctrls[mod]![pos] = TextEditingController(text: pago == 0 ? '' : pago.toString());
-      }
-    });
+    // Construir controllers dinámicamente desde lo que devuelve el API
+    for (var d in widget.esquema.detalle) {
+      final key = '${d.modalidad}_${d.posicion}';
+      _ctrls[key] = TextEditingController(text: d.pago == 0 ? '' : d.pago.toString());
+    }
   }
 
   @override
   void dispose() {
-    for (var m in _ctrls.values) {
-      for (var c in m.values) c.dispose();
-    }
+    for (var c in _ctrls.values) c.dispose();
     super.dispose();
   }
 
-  double _getPago(String modalidad, int posicion) {
-    try {
-      return widget.esquema.detalle.firstWhere(
-        (d) => d.modalidad == modalidad && d.posicion == posicion
-      ).pago;
-    } catch (_) { return 0; }
+  // Agrupar detalle por modalidad manteniendo orden Q, P, T, SP
+  Map<String, List<DetallePago>> _agrupar() {
+    final orden = ['Q', 'P', 'T', 'SP'];
+    final Map<String, List<DetallePago>> grupos = {};
+    for (var d in widget.esquema.detalle) {
+      grupos.putIfAbsent(d.modalidad, () => []).add(d);
+    }
+    // Ordenar posiciones dentro de cada grupo
+    for (var lista in grupos.values) {
+      lista.sort((a, b) => a.posicion.compareTo(b.posicion));
+    }
+    // Devolver en orden conocido primero, luego el resto
+    final result = <String, List<DetallePago>>{};
+    for (var mod in orden) {
+      if (grupos.containsKey(mod)) result[mod] = grupos[mod]!;
+    }
+    for (var entry in grupos.entries) {
+      if (!result.containsKey(entry.key)) result[entry.key] = entry.value;
+    }
+    return result;
   }
 
   Future<void> _guardar() async {
     setState(() => _saving = true);
     try {
-      for (var entry in _ctrls.entries) {
-        final mod = entry.key;
-        for (var posEntry in entry.value.entries) {
-          final pos = posEntry.key;
-          final val = double.tryParse(posEntry.value.text) ?? 0;
-          await EsquemasService.guardarMultiplicador(widget.esquema.id, mod, pos, val);
-        }
+      for (var d in widget.esquema.detalle) {
+        final key = '${d.modalidad}_${d.posicion}';
+        final val = double.tryParse(_ctrls[key]?.text ?? '') ?? 0;
+        await EsquemasService.guardarMultiplicador(widget.esquema.id, d.modalidad, d.posicion, val);
       }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✓ Pagos actualizados")));
@@ -326,10 +326,19 @@ class _EditorPagosState extends State<_EditorPagos> {
 
   @override
   Widget build(BuildContext context) {
+    final grupos = _agrupar();
+
+    if (grupos.isEmpty) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Text("No hay datos de pagos configurados"),
+      ));
+    }
+
     return Column(children: [
-      ..._estructura.entries.map((entry) {
+      ...grupos.entries.map((entry) {
         final mod = entry.key;
-        final posiciones = entry.value;
+        final items = entry.value;
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: Padding(
@@ -340,14 +349,14 @@ class _EditorPagosState extends State<_EditorPagos> {
                 Text(_nombres[mod] ?? mod,
                   style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E), fontSize: 14)),
                 const SizedBox(height: 8),
-                for (var pos in posiciones)
+                for (var d in items)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: TextField(
-                      controller: _ctrls[mod]![pos],
+                      controller: _ctrls['${d.modalidad}_${d.posicion}'],
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        labelText: posiciones.length > 1 ? "Posición $pos" : "Multiplicador",
+                        labelText: items.length > 1 ? "Posición ${d.posicion}" : "Multiplicador",
                         border: const OutlineInputBorder(),
                         suffixText: "x",
                         isDense: true,
