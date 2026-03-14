@@ -4,6 +4,9 @@ class Banca {
   final String? nombreTicket;
   final String? codigo;
   final String? ipConfig;
+  final String? riferoId;
+  final String? riferoUsername;
+  final String? riferoNombre;
   final bool    activa;
   final String? esquemaPrecioId;
   final String? esquemaPagoId;
@@ -27,6 +30,9 @@ class Banca {
     this.nombreTicket,
     this.codigo,
     this.ipConfig,
+    this.riferoId,
+    this.riferoUsername,
+    this.riferoNombre,
     this.esquemaPrecioId,
     this.esquemaPagoId,
     this.limiteQ,  this.limiteP,  this.limiteT,  this.limiteSP,
@@ -40,6 +46,9 @@ class Banca {
     nombreTicket:    m['nombre_ticket']?.toString(),
     codigo:          m['codigo']?.toString(),
     ipConfig:        m['ip_config']?.toString(),
+    riferoId:        m['rifero_id']?.toString(),
+    riferoUsername:  m['rifero_username']?.toString(),
+    riferoNombre:    m['rifero_nombre']?.toString(),
     activa:          m['activa'] == true || m['activa'] == 1,
     esquemaPrecioId: m['esquema_precio_id']?.toString(),
     esquemaPagoId:   m['esquema_pago_id']?.toString(),
@@ -61,4 +70,16 @@ class Esquema {
   const Esquema({required this.id, required this.nombre});
   factory Esquema.fromMap(Map<String, dynamic> m) =>
       Esquema(id: m['id'].toString(), nombre: m['nombre'].toString());
+}
+
+class Rifero {
+  final String id;
+  final String username;
+  final String nombre;
+  const Rifero({required this.id, required this.username, required this.nombre});
+  factory Rifero.fromMap(Map<String, dynamic> m) => Rifero(
+    id:       m['id'].toString(),
+    username: m['username'].toString(),
+    nombre:   m['nombre']?.toString() ?? m['username'].toString(),
+  );
 }
