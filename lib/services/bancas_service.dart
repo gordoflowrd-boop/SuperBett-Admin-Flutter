@@ -3,12 +3,15 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/banca.dart';
 
-const String _kApi = "https://superbett-api-production.up.railway.app/api";
-
 class BancasService {
   static Future<String> _token() async {
     final p = await SharedPreferences.getInstance();
     return p.getString('token') ?? '';
+  }
+
+  static Future<String> _apiBase() async {
+    final p = await SharedPreferences.getInstance();
+    return '${p.getString('api_base') ?? ''}/api';
   }
 
   static Map<String, String> _headers(String token) => {
@@ -22,10 +25,13 @@ class BancasService {
     Map<String, dynamic>? body,
   }) async {
     final token = await _token();
-    final uri   = Uri.parse('$_kApi$path');
+    final base  = await _apiBase();
+    final uri   = Uri.parse('$base$path');
     http.Response r;
     if (method == 'PATCH') {
       r = await http.patch(uri, headers: _headers(token), body: jsonEncode(body ?? {}));
+    } else if (method == 'PUT') {
+      r = await http.put(uri, headers: _headers(token), body: jsonEncode(body ?? {}));
     } else {
       r = await http.get(uri, headers: _headers(token));
     }
@@ -58,6 +64,11 @@ class BancasService {
   }
 
   static Future<void> guardarBanca(String id, Map<String, dynamic> cambios) async {
+    // Separar ip_config — tiene su propio endpoint PUT
+    final ip = cambios.remove('ip_config');
     await _fetch('/admin/bancas/$id', method: 'PATCH', body: cambios);
+    if (ip != null) {
+      await _fetch('/admin/bancas/$id/ip', method: 'PUT', body: {'ip_config': ip});
+    }
   }
 }
