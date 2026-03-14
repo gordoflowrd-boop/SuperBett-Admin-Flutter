@@ -134,6 +134,7 @@ class _BancaModalState extends State<_BancaModal> {
   final _nom  = TextEditingController();
   final _tick = TextEditingController();
   final _cod  = TextEditingController();
+  final _ip   = TextEditingController();
   bool _activa = true;
 
   List<Esquema> _esqP = [], _esqPag = [];
@@ -156,7 +157,7 @@ class _BancaModalState extends State<_BancaModal> {
 
   void _poblar(Banca b) {
     _nom.text  = b.nombre;       _tick.text = b.nombreTicket ?? '';
-    _cod.text  = b.codigo ?? ''; _activa    = b.activa;
+    _cod.text  = b.codigo ?? ''; _ip.text   = b.ipConfig ?? ''; _activa = b.activa;
     _precioId  = b.esquemaPrecioId; _pagoId = b.esquemaPagoId;
     _lQ.text = b.limiteQ?.toStringAsFixed(0)  ?? ''; _lP.text = b.limiteP?.toStringAsFixed(0)  ?? '';
     _lT.text = b.limiteT?.toStringAsFixed(0)  ?? ''; _lS.text = b.limiteSP?.toStringAsFixed(0) ?? '';
@@ -176,7 +177,7 @@ class _BancaModalState extends State<_BancaModal> {
 
   @override
   void dispose() {
-    for (final c in [_nom,_tick,_cod,_lQ,_lP,_lT,_lS,_cQ,_cP,_cT,_cS,_tQ,_tP,_tT,_tS]) c.dispose();
+    for (final c in [_nom,_tick,_cod,_ip,_lQ,_lP,_lT,_lS,_cQ,_cP,_cT,_cS,_tQ,_tP,_tT,_tS]) c.dispose();
     super.dispose();
   }
 
@@ -187,6 +188,7 @@ class _BancaModalState extends State<_BancaModal> {
     try {
       await BancasService.guardarBanca(widget.banca.id, {
         'nombre': _nom.text.trim(), 'nombre_ticket': _tick.text.trim(), 'activa': _activa,
+        'ip_config': _ip.text.trim().isEmpty ? null : _ip.text.trim(),
         'esquema_precio_id': _precioId, 'esquema_pago_id': _pagoId,
         'limite_q':  _v(_lQ), 'limite_p':  _v(_lP), 'limite_t':  _v(_lT), 'limite_sp':  _v(_lS),
         'comision_q':_v(_cQ), 'comision_p':_v(_cP), 'comision_t':_v(_cT), 'comision_sp':_v(_cS),
@@ -254,7 +256,7 @@ class _BancaModalState extends State<_BancaModal> {
           : SingleChildScrollView(padding: const EdgeInsets.all(18),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _sec('Datos de la banca'),
-                _f('Nombre', _nom), _f('Nombre en ticket', _tick), _f('Código', _cod),
+                _f('Nombre', _nom), _f('Nombre en ticket', _tick), _f('Código', _cod), _f('IP de banca', _ip),
                 const SizedBox(height: 2),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
