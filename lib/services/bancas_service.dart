@@ -1,22 +1,18 @@
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/banca.dart';
 
 class BancasService {
-  static Future<String> _token() async {
-    final p = await SharedPreferences.getInstance();
-    return p.getString('token') ?? '';
-  }
+  static const String _kApi =
+      'https://superbett-api-production.up.railway.app/api';
 
-  static Future<String> _apiBase() async {
-    final p = await SharedPreferences.getInstance();
-    return '${p.getString('api_base') ?? ''}/api';
-  }
+  static String _token() => html.window.localStorage['token'] ?? '';
 
-  static Map<String, String> _headers(String token) => {
-    "Content-Type":  "application/json",
-    "Authorization": "Bearer $token",
+  static Map<String, String> _headers() => {
+    'Content-Type':  'application/json',
+    'Authorization': 'Bearer ${_token()}',
   };
 
   static Future<Map<String, dynamic>> _fetch(
@@ -24,16 +20,14 @@ class BancasService {
     String method = 'GET',
     Map<String, dynamic>? body,
   }) async {
-    final token = await _token();
-    final base  = await _apiBase();
-    final uri   = Uri.parse('$base$path');
+    final uri = Uri.parse('$_kApi$path');
     http.Response r;
     if (method == 'PATCH') {
-      r = await http.patch(uri, headers: _headers(token), body: jsonEncode(body ?? {}));
+      r = await http.patch(uri, headers: _headers(), body: jsonEncode(body ?? {}));
     } else if (method == 'PUT') {
-      r = await http.put(uri, headers: _headers(token), body: jsonEncode(body ?? {}));
+      r = await http.put(uri, headers: _headers(), body: jsonEncode(body ?? {}));
     } else {
-      r = await http.get(uri, headers: _headers(token));
+      r = await http.get(uri, headers: _headers());
     }
     final data = jsonDecode(r.body) as Map<String, dynamic>;
     if (!r.statusCode.toString().startsWith('2')) {
@@ -64,7 +58,6 @@ class BancasService {
   }
 
   static Future<void> guardarBanca(String id, Map<String, dynamic> cambios) async {
-    // Separar ip_config — tiene su propio endpoint PUT
     final ip = cambios.remove('ip_config');
     await _fetch('/admin/bancas/$id', method: 'PATCH', body: cambios);
     if (ip != null) {
