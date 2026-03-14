@@ -3,6 +3,7 @@ class Banca {
   final String  nombre;
   final String? nombreTicket;
   final String? codigo;
+  final String? ipConfig;
   final bool    activa;
   final String? esquemaPrecioId;
   final String? esquemaPagoId;
@@ -25,6 +26,7 @@ class Banca {
     required this.activa,
     this.nombreTicket,
     this.codigo,
+    this.ipConfig,
     this.esquemaPrecioId,
     this.esquemaPagoId,
     this.limiteQ,  this.limiteP,  this.limiteT,  this.limiteSP,
@@ -37,6 +39,7 @@ class Banca {
     nombre:          m['nombre']?.toString()         ?? '',
     nombreTicket:    m['nombre_ticket']?.toString(),
     codigo:          m['codigo']?.toString(),
+    ipConfig:        m['ip_config']?.toString(),
     activa:          m['activa'] == true || m['activa'] == 1,
     esquemaPrecioId: m['esquema_precio_id']?.toString(),
     esquemaPagoId:   m['esquema_pago_id']?.toString(),
