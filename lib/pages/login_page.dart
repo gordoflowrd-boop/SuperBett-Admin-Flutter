@@ -102,48 +102,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final isWide = MediaQuery.of(context).size.width > 600;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF4F6FA),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: Column(children: [
-              // ── Franja superior con logo
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.fromLTRB(0, isWide ? 28 : 40, 0, isWide ? 24 : 32),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    bottom: const Radius.circular(32),
-                    top: isWide ? const Radius.circular(24) : Radius.zero,
-                  ),
-                  boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 4))],
-                ),
+              // ── Título
+              Padding(
+                padding: EdgeInsets.fromLTRB(24, isWide ? 32 : 48, 24, 0),
                 child: Column(children: [
-                  Container(
-                    width: 72, height: 72,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A237E),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [BoxShadow(color: Color(0x331A237E), blurRadius: 20, offset: Offset(0, 8))],
-                    ),
-                    child: const Center(child: Text("SB",
-                      style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 1))),
-                  ),
-                  const SizedBox(height: 14),
                   const Text("SuperBett",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900,
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900,
                         color: Color(0xFF1A237E), letterSpacing: 0.5)),
                   const SizedBox(height: 2),
                   Text("Panel Administrativo",
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500,
+                        letterSpacing: 0.8, fontWeight: FontWeight.w500)),
                 ]),
               ),
 
               // ── Formulario
               Expanded(child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                 child: AnimatedBuilder(
                   animation: _shakeAnim,
                   builder: (_, child) => Transform.translate(
