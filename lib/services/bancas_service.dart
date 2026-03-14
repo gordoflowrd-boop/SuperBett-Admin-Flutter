@@ -1,18 +1,19 @@
 import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/banca.dart';
 
+const String _kApi = 'https://superbett-api-production.up.railway.app/api';
+
 class BancasService {
-  static const String _kApi =
-      'https://superbett-api-production.up.railway.app/api';
+  static Future<String> _token() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getString('token') ?? '';
+  }
 
-  static String _token() => html.window.localStorage['token'] ?? '';
-
-  static Map<String, String> _headers() => {
+  static Map<String, String> _headers(String token) => {
     'Content-Type':  'application/json',
-    'Authorization': 'Bearer ${_token()}',
+    'Authorization': 'Bearer $token',
   };
 
   static Future<Map<String, dynamic>> _fetch(
@@ -20,14 +21,15 @@ class BancasService {
     String method = 'GET',
     Map<String, dynamic>? body,
   }) async {
-    final uri = Uri.parse('$_kApi$path');
+    final token = await _token();
+    final uri   = Uri.parse('$_kApi$path');
     http.Response r;
     if (method == 'PATCH') {
-      r = await http.patch(uri, headers: _headers(), body: jsonEncode(body ?? {}));
+      r = await http.patch(uri, headers: _headers(token), body: jsonEncode(body ?? {}));
     } else if (method == 'PUT') {
-      r = await http.put(uri, headers: _headers(), body: jsonEncode(body ?? {}));
+      r = await http.put(uri, headers: _headers(token), body: jsonEncode(body ?? {}));
     } else {
-      r = await http.get(uri, headers: _headers());
+      r = await http.get(uri, headers: _headers(token));
     }
     final data = jsonDecode(r.body) as Map<String, dynamic>;
     if (!r.statusCode.toString().startsWith('2')) {
