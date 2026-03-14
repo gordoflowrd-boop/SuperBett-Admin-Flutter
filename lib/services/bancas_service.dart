@@ -59,11 +59,26 @@ class BancasService {
         .toList();
   }
 
+  static Future<List<Rifero>> obtenerRiferos() async {
+    final data = await _fetch('/admin/riferos');
+    return ((data['riferos'] as List?) ?? [])
+        .map((r) => Rifero.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
   static Future<void> guardarBanca(String id, Map<String, dynamic> cambios) async {
-    final ip = cambios.remove('ip_config');
+    final ip      = cambios.remove('ip_config');
+    final riferoId = cambios.remove('rifero_id');
+
     await _fetch('/admin/bancas/$id', method: 'PATCH', body: cambios);
+
     if (ip != null) {
-      await _fetch('/admin/bancas/$id/ip', method: 'PUT', body: {'ip_config': ip});
+      await _fetch('/admin/bancas/$id/ip',
+          method: 'PUT', body: {'ip_config': ip});
+    }
+    if (riferoId != null) {
+      await _fetch('/admin/bancas/$id/rifero',
+          method: 'PUT', body: {'rifero_id': riferoId});
     }
   }
 }
