@@ -31,11 +31,6 @@ class _BancasPageState extends State<BancasPage> {
     } catch (e) { setState(() { _error = e.toString(); _loading = false; }); }
   }
 
-  void _onSelect(int i) {
-    const r = ['/menu','/bancas','/venta','/premios','/reportes','/usuarios','/limites','/configuracion'];
-    if (i < r.length && r[i] != '/bancas') Navigator.pushReplacementNamed(context, r[i]);
-  }
-
   Widget _chip(String label, String val, Color c) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(color: c.withOpacity(0.1), borderRadius: BorderRadius.circular(8),
@@ -88,7 +83,7 @@ class _BancasPageState extends State<BancasPage> {
 
   @override
   Widget build(BuildContext context) => AppLayout(
-    selectedIndex: 1, onItemSelected: _onSelect,
+    selectedIndex: 1,
     child: _loading ? const Center(child: CircularProgressIndicator())
       : _error.isNotEmpty
         ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
