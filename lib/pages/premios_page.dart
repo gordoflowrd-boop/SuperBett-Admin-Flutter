@@ -34,19 +34,6 @@ class _PremiosPageState extends State<PremiosPage> {
     }
   }
 
-  void _onSelect(int i) {
-    const rutas = [
-      '/menu',          // 0
-      '/bancas',        // 1
-      '/venta',         // 2
-      '/premios',       // 3
-      '/reportes',      // 4
-      '/usuarios',      // 5
-      '/limites',       // 6
-      '/configuracion', // 7
-    ];
-    if (i < rutas.length && rutas[i] != '/premios') Navigator.pushReplacementNamed(context, rutas[i]);
-  }
 
   Future<void> _generar() async {
     final confirm = await showDialog<bool>(context: context,
@@ -218,7 +205,6 @@ class _PremiosPageState extends State<PremiosPage> {
 
     return AppLayout(
       selectedIndex: 3,
-      onItemSelected: _onSelect,
       child: Column(children: [
         Container(
           color: const Color(0xFF1A237E),
