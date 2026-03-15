@@ -73,8 +73,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         return;
       }
 
-      if (!["admin", "central"].contains(data["usuario"]?["rol"])) {
-        _setError("Sin acceso al panel admin");
+      if (!["admin", "central", "rifero", "tecnico"].contains(data["usuario"]?["rol"])) {
+        _setError("Sin acceso al panel");
         return;
       }
 
@@ -83,7 +83,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       await prefs.setString("usuario", jsonEncode(data["usuario"]));
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, "/menu");
+      Navigator.pushReplacementNamed(context, "/dashboard");
 
     } catch (_) {
       _setError("Error de conexión");
@@ -111,7 +111,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             child: Column(children: [
               // ── Título
               Padding(
-                padding: EdgeInsets.fromLTRB(24, isWide ? 32 : 48, 24, 0),
+                padding: EdgeInsets.fromLTRB(24, isWide ? 16 : 24, 24, 0),
                 child: Column(children: [
                   const Text("SuperBett",
                     style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900,
@@ -125,7 +125,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
               // ── Formulario
               Expanded(child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
                 child: AnimatedBuilder(
                   animation: _shakeAnim,
                   builder: (_, child) => Transform.translate(
@@ -133,7 +133,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     child: child,
                   ),
                   child: Container(
-                    padding: const EdgeInsets.all(28),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
@@ -145,7 +145,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       const SizedBox(height: 4),
                       Text("Ingresa tus credenciales para continuar",
                         style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 20),
 
                       _label("Usuario"),
                       const SizedBox(height: 6),
@@ -157,7 +157,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         textInputAction: TextInputAction.next,
                         onSubmitted: (_) => _passFocus.requestFocus(),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 14),
 
                       _label("Contraseña"),
                       const SizedBox(height: 6),
@@ -175,9 +175,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _loading ? null : _login(),
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 20),
 
-                      SizedBox(width: double.infinity, height: 52,
+                      SizedBox(width: double.infinity, height: 48,
                         child: ElevatedButton(
                           onPressed: _loading ? null : _login,
                           style: ElevatedButton.styleFrom(
