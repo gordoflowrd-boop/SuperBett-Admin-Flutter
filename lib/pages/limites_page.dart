@@ -131,8 +131,7 @@ class _LimitesPageState extends State<LimitesPage> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      selectedIndex: 6,
-      onItemSelected: (i) => _navegar(context, i),
+      selectedIndex: 8,
       child: Column(children: [
 
         // ── Navbar ─────────────────────────────
