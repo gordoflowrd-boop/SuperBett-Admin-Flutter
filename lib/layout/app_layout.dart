@@ -13,7 +13,7 @@ class AppLayout extends StatelessWidget {
     required this.onItemSelected,
   });
 
-  static const _items = [
+  static final _items = [
     {'label': 'Menú',          'icon': Icons.home_outlined,            'iconSel': Icons.home},
     {'label': 'Bancas',        'icon': Icons.storefront_outlined,      'iconSel': Icons.storefront},
     {'label': 'Venta',         'icon': Icons.receipt_long_outlined,    'iconSel': Icons.receipt_long},
