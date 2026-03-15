@@ -7,6 +7,7 @@ import 'pages/venta_page.dart';
 import 'pages/premios_page.dart';
 import 'pages/reporte_page.dart';
 import 'pages/usuarios_page.dart';
+import 'pages/riferos_page.dart';
 import 'pages/limites_page.dart';
 import 'pages/configuracion_page.dart';
 
@@ -39,10 +40,10 @@ class SuperBettApp extends StatelessWidget {
         '/premios':       (context) => const PremiosPage(),
         '/reportes':      (context) => const ReportesPage(),
         '/usuarios':      (context) => const UsuariosPage(),
+        '/riferos':       (context) => const RiferosPage(),
         '/limites':       (context) => const LimitesPage(),
         '/configuracion': (context) => const ConfiguracionPage(),
       },
     );
   }
 }
-
