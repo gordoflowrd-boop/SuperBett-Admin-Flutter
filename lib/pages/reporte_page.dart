@@ -33,20 +33,6 @@ class _ReportesPageState extends State<ReportesPage> {
   double get _totalResultado => _resumen.fold(0.0, (s, r) => s + _toDouble(r['resultado']));
 
   // --- Navegación Sincronizada ---
-  void _onSelect(int i) {
-    const rutas = [
-      '/menu',          // 0
-      '/bancas',        // 1
-      '/venta',         // 2
-      '/premios',       // 3
-      '/reportes',      // 4
-      '/usuarios',      // 5
-      '/limites',       // 6
-      '/configuracion', // 7
-    ];
-    if (i < rutas.length && rutas[i] != '/reportes') {
-      Navigator.pushReplacementNamed(context, rutas[i]);
-    }
   }
 
   Future<void> _cargar() async {
@@ -139,8 +125,7 @@ class _ReportesPageState extends State<ReportesPage> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      selectedIndex: 4, // Reportes es el índice 4
-      onItemSelected: _onSelect,
+      selectedIndex: 4,
       child: Column(children: [
         Container(
           color: const Color(0xFF1A237E),
