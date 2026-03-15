@@ -17,7 +17,7 @@ class _RiferosPageState extends State<RiferosPage> {
 
   void _onSelect(BuildContext context, int i) {
     const rutas = ['/menu','/bancas','/venta','/premios',
-                   '/reportes','/usuarios','/riferos','/limites','/configuracion'];
+                   '/reportes','/usuarios','/limites','/configuracion','/riferos'];
     if (i < rutas.length && rutas[i] != '/riferos')
       Navigator.pushReplacementNamed(context, rutas[i]);
   }
@@ -43,7 +43,7 @@ class _RiferosPageState extends State<RiferosPage> {
 
   @override
   Widget build(BuildContext context) => AppLayout(
-    selectedIndex: 6,
+    selectedIndex: 8,
     onItemSelected: (i) => _onSelect(context, i),
     child: Column(children: [
       // Header
