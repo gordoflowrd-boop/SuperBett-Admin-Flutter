@@ -6,7 +6,7 @@ class MenuPage extends StatelessWidget {
 
   void _onSelect(BuildContext context, int i) {
     const rutas = [
-      null,              // 0 → /menu (ya estamos aquí)
+      null,              // 0 → /menu
       '/bancas',         // 1
       '/venta',          // 2
       '/premios',        // 3
@@ -14,6 +14,7 @@ class MenuPage extends StatelessWidget {
       '/usuarios',       // 5
       '/limites',        // 6
       '/configuracion',  // 7
+      '/riferos',        // 8
     ];
     final ruta = rutas[i];
     if (ruta != null) Navigator.pushReplacementNamed(context, ruta);
@@ -26,7 +27,6 @@ class MenuPage extends StatelessWidget {
       onItemSelected: (i) => _onSelect(context, i),
       child: Column(
         children: [
-          // ── Navbar ──
           Container(
             color: const Color(0xFF1A237E),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -46,8 +46,6 @@ class MenuPage extends StatelessWidget {
               ],
             ),
           ),
-
-          // ── Contenido Central ──
           Expanded(
             child: Center(
               child: Column(
@@ -102,4 +100,3 @@ class MenuPage extends StatelessWidget {
     );
   }
 }
-
