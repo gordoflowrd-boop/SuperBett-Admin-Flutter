@@ -135,6 +135,8 @@ class _BancaModalState extends State<_BancaModal> {
   final _tick = TextEditingController();
   final _cod  = TextEditingController();
   final _ip   = TextEditingController();
+  String? _riferoId;
+  List<Rifero> _riferos = [];
   bool _activa = true;
 
   List<Esquema> _esqP = [], _esqPag = [];
@@ -157,7 +159,7 @@ class _BancaModalState extends State<_BancaModal> {
 
   void _poblar(Banca b) {
     _nom.text  = b.nombre;       _tick.text = b.nombreTicket ?? '';
-    _cod.text  = b.codigo ?? ''; _ip.text   = b.ipConfig ?? ''; _activa = b.activa;
+    _cod.text  = b.codigo ?? ''; _ip.text = b.ipConfig ?? ''; _riferoId = b.riferoId; _activa = b.activa;
     _precioId  = b.esquemaPrecioId; _pagoId = b.esquemaPagoId;
     _lQ.text = b.limiteQ?.toStringAsFixed(0)  ?? ''; _lP.text = b.limiteP?.toStringAsFixed(0)  ?? '';
     _lT.text = b.limiteT?.toStringAsFixed(0)  ?? ''; _lS.text = b.limiteSP?.toStringAsFixed(0) ?? '';
@@ -170,8 +172,8 @@ class _BancaModalState extends State<_BancaModal> {
   Future<void> _cargarEsq() async {
     setState(() => _load = true);
     try {
-      final f = await Future.wait([BancasService.obtenerEsquemasPrecios(), BancasService.obtenerEsquemasPagos()]);
-      setState(() { _esqP = f[0] as List<Esquema>; _esqPag = f[1] as List<Esquema>; _load = false; });
+      final f = await Future.wait([BancasService.obtenerEsquemasPrecios(), BancasService.obtenerEsquemasPagos(), BancasService.obtenerRiferos()]);
+      setState(() { _esqP = f[0] as List<Esquema>; _esqPag = f[1] as List<Esquema>; _riferos = f[2] as List<Rifero>; _load = false; });
     } catch (_) { setState(() => _load = false); }
   }
 
@@ -189,6 +191,7 @@ class _BancaModalState extends State<_BancaModal> {
       await BancasService.guardarBanca(widget.banca.id, {
         'nombre': _nom.text.trim(), 'nombre_ticket': _tick.text.trim(), 'activa': _activa,
         'ip_config': _ip.text.trim().isEmpty ? null : _ip.text.trim(),
+        'rifero_id': _riferoId,
         'esquema_precio_id': _precioId, 'esquema_pago_id': _pagoId,
         'limite_q':  _v(_lQ), 'limite_p':  _v(_lP), 'limite_t':  _v(_lT), 'limite_sp':  _v(_lS),
         'comision_q':_v(_cQ), 'comision_p':_v(_cP), 'comision_t':_v(_cT), 'comision_sp':_v(_cS),
@@ -211,6 +214,28 @@ class _BancaModalState extends State<_BancaModal> {
     padding: const EdgeInsets.only(bottom: 8),
     child: TextField(controller: c,
       decoration: InputDecoration(labelText: label, border: _deco8, isDense: true, contentPadding: _dense)));
+
+  Widget _riferoDropdown() => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: DropdownButtonFormField<String?>(
+      value: _riferoId,
+      decoration: const InputDecoration(
+        labelText: 'Rifero por defecto',
+        border: OutlineInputBorder(),
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      ),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('Sin rifero')),
+        ..._riferos.map((r) => DropdownMenuItem(
+          value: r.id,
+          child: Text('${r.username} — ${r.nombre}',
+              style: const TextStyle(fontSize: 14)),
+        )),
+      ],
+      onChanged: (v) => setState(() => _riferoId = v),
+    ),
+  );
 
   Widget _n(String label, TextEditingController c, {bool d = false}) => TextField(
     controller: c,
@@ -257,6 +282,8 @@ class _BancaModalState extends State<_BancaModal> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _sec('Datos de la banca'),
                 _f('Nombre', _nom), _f('Nombre en ticket', _tick), _f('Código', _cod), _f('IP de banca', _ip),
+                _sec('Rifero por defecto'),
+                _riferoDropdown(),
                 const SizedBox(height: 2),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
