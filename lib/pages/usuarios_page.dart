@@ -37,21 +37,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
     if (mounted) setState(() => _idPropio = id ?? '');
   }
 
-  // Corregido para coincidir exactamente con el orden de AppLayout
-  void _onSelect(int i) {
-    const rutas = [
-      '/menu',          // 0
-      '/bancas',        // 1
-      '/venta',         // 2
-      '/premios',       // 3
-      '/reportes',      // 4
-      '/usuarios',      // 5
-      '/limites',       // 6
-      '/configuracion', // 7
-    ];
-    if (rutas[i] != '/usuarios') {
-      Navigator.pushReplacementNamed(context, rutas[i]);
-    }
   }
 
   Future<void> _cargar() async {
@@ -362,8 +347,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      selectedIndex: 5, // Cambiado de 4 a 5 para sincronizar con AppLayout
-      onItemSelected: _onSelect,
+      selectedIndex: 6,
       child: Column(children: [
         Container(
           color: const Color(0xFF1A237E),
