@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'pages/login_page.dart';
-import 'pages/menu_page.dart';
+import 'pages/dashboard_page.dart';
 import 'pages/bancas_page.dart';
 import 'pages/venta_page.dart';
 import 'pages/premios_page.dart';
@@ -11,6 +11,8 @@ import 'pages/riferos_page.dart';
 import 'pages/limites_page.dart';
 import 'pages/configuracion_page.dart';
 import 'pages/descargas_page.dart';
+import 'pages/contabilidad_page.dart';
+import 'pages/mensajes_page.dart';
 
 void main() {
   runApp(const SuperBettApp());
@@ -33,9 +35,9 @@ class SuperBettApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/':              (context) => const LoginPage(),
+        '/':              (context) => const DashboardPage(),
         '/login':         (context) => const LoginPage(),
-        '/menu':          (context) => const MenuPage(),
+        '/dashboard':     (context) => const DashboardPage(),
         '/bancas':        (context) => const BancasPage(),
         '/venta':         (context) => const VentaPage(),
         '/premios':       (context) => const PremiosPage(),
@@ -45,6 +47,8 @@ class SuperBettApp extends StatelessWidget {
         '/limites':       (context) => const LimitesPage(),
         '/configuracion': (context) => const ConfiguracionPage(),
         '/descargas':     (context) => const DescargasPage(),
+        '/contabilidad':  (context) => const ContabilidadPage(),
+        '/mensajes':      (context) => const MensajesPage(),
       },
     );
   }
