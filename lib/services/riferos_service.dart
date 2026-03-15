@@ -60,10 +60,10 @@ class RiferosService {
     return bancas.where((b) => b['rifero_id']?.toString() == riferoId).toList();
   }
 
-  // Vendedores asignados a un rifero
-  static Future<List<Map<String, dynamic>>> vendedoresDeRifero(String vendedorId) async {
-    final data = await _fetch('/admin/usuarios/$vendedorId/riferos');
-    return List<Map<String, dynamic>>.from(data['riferos'] ?? []);
+  // Vendedores asignados a un rifero ← CORREGIDO
+  static Future<List<Map<String, dynamic>>> vendedoresDeRifero(String riferoId) async {
+    final data = await _fetch('/admin/riferos/$riferoId/vendedores');
+    return List<Map<String, dynamic>>.from(data['vendedores'] ?? []);
   }
 
   // Asignar vendedor a rifero
@@ -78,4 +78,3 @@ class RiferosService {
         method: 'DELETE');
   }
 }
-
