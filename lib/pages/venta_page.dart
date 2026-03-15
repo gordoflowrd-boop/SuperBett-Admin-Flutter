@@ -30,21 +30,6 @@ class _VentaPageState extends State<VentaPage> {
   double _toDouble(dynamic v) =>
       v == null ? 0.0 : double.tryParse(v.toString()) ?? 0.0;
 
-  // Sincronizado con AppLayout
-  void _onSelect(int i) {
-    const rutas = [
-      '/menu',          // 0
-      '/bancas',        // 1
-      '/venta',         // 2
-      '/premios',       // 3
-      '/reportes',      // 4
-      '/usuarios',      // 5
-      '/limites',       // 6
-      '/configuracion', // 7
-    ];
-    if (i < rutas.length && rutas[i] != '/venta') {
-      Navigator.pushReplacementNamed(context, rutas[i]);
-    }
   }
 
   Future<void> _cargarLoterias() async {
@@ -194,8 +179,7 @@ class _VentaPageState extends State<VentaPage> {
   Widget build(BuildContext context) {
     final grupos = _grupos;
     return AppLayout(
-      selectedIndex: 2, // ACTUALIZADO: 2 es Venta según AppLayout
-      onItemSelected: _onSelect,
+      selectedIndex: 2,
       child: Column(children: [
         // Navbar
         Container(
