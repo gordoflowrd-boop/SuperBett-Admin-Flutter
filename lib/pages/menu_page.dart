@@ -15,6 +15,7 @@ class MenuPage extends StatelessWidget {
       '/limites',        // 6
       '/configuracion',  // 7
       '/riferos',        // 8
+      '/descargas',      // 9
     ];
     final ruta = rutas[i];
     if (ruta != null) Navigator.pushReplacementNamed(context, ruta);
