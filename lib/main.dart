@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 import 'pages/login_page.dart';
 import 'pages/menu_page.dart';
@@ -10,6 +9,7 @@ import 'pages/usuarios_page.dart';
 import 'pages/riferos_page.dart';
 import 'pages/limites_page.dart';
 import 'pages/configuracion_page.dart';
+import 'pages/descargas_page.dart';
 
 void main() {
   runApp(const SuperBettApp());
@@ -43,6 +43,7 @@ class SuperBettApp extends StatelessWidget {
         '/riferos':       (context) => const RiferosPage(),
         '/limites':       (context) => const LimitesPage(),
         '/configuracion': (context) => const ConfiguracionPage(),
+        '/descargas':     (context) => const DescargasPage(),
       },
     );
   }
