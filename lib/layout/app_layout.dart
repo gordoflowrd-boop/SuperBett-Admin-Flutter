@@ -20,9 +20,9 @@ class AppLayout extends StatelessWidget {
     {'label': 'Premios',       'icon': Icons.emoji_events_outlined, 'iconSel': Icons.emoji_events},
     {'label': 'Reportes',      'icon': Icons.bar_chart_outlined,    'iconSel': Icons.bar_chart},
     {'label': 'Usuarios',      'icon': Icons.people_outline,        'iconSel': Icons.people},
-    {'label': 'Riferos',       'icon': Icons.manage_accounts_outlined, 'iconSel': Icons.manage_accounts},
     {'label': 'Límites',       'icon': Icons.tune_outlined,         'iconSel': Icons.tune},
     {'label': 'Configuración', 'icon': Icons.settings_outlined,     'iconSel': Icons.settings},
+    {'label': 'Riferos',       'icon': Icons.manage_accounts_outlined, 'iconSel': Icons.manage_accounts},
   ];
 
   Future<void> _salir(BuildContext context) async {
