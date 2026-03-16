@@ -23,50 +23,60 @@ class _VentaPageState extends State<VentaPage> {
   final _modOrden = const ['Q', 'P', 'T', 'SP'];
 
   @override
-  void initState() { super.initState(); _cargarLoterias(); }
+  void initState() { 
+    super.initState(); 
+    _cargarLoterias(); 
+  }
 
   String get _fechaStr => DateFormat('yyyy-MM-dd').format(_fecha);
 
   double _toDouble(dynamic v) =>
       v == null ? 0.0 : double.tryParse(v.toString()) ?? 0.0;
 
-  }
+  // --- SE ELIMINÓ LA LLAVE EXTRA QUE CERRABA LA CLASE AQUÍ ---
 
   Future<void> _cargarLoterias() async {
+    if (!mounted) return;
     setState(() => _loadingLot = true);
     try {
       final data = await VentaService.obtenerLoterias();
-      setState(() { _loterias = data; _loadingLot = false; });
+      if (mounted) {
+        setState(() { _loterias = data; _loadingLot = false; });
+      }
     } catch (_) {
-      setState(() => _loadingLot = false);
+      if (mounted) setState(() => _loadingLot = false);
     }
     await _cargarVenta();
   }
 
   Future<void> _cargarVenta() async {
+    if (!mounted) return;
     setState(() { _loading = true; _error = ""; });
     try {
       final resp = await VentaService.obtenerVentaDia(
         fecha:     _fechaStr,
         loteriaId: _loteriaId,
       );
-      // La API retorna { normales: [], super_pale: [], totales: {} }
       final normales   = List<dynamic>.from(resp['normales']   ?? []);
       final superPale  = List<dynamic>.from(resp['super_pale'] ?? []);
       var data = [...normales, ...superPale];
-      // Filtro SP_ONLY en cliente
+      
       if (_loteriaId == 'SP_ONLY') {
         data = data.where((r) => r['modalidad'] == 'SP').toList();
       }
-      setState(() { _filas = data; _loading = false; });
+      
+      if (mounted) {
+        setState(() { _filas = data; _loading = false; });
+      }
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() { _error = e.toString(); _loading = false; });
+      }
     }
   }
 
   Map<String, List<dynamic>> get _grupos {
     final g = <String, List<dynamic>>{};
-    // Aseguramos el orden Q, P, T, SP
     for (final m in _modOrden) { g[m] = []; }
     
     for (final r in _filas) {
@@ -87,7 +97,10 @@ class _VentaPageState extends State<VentaPage> {
       firstDate: DateTime(2024),
       lastDate: DateTime.now().add(const Duration(days: 1)),
     );
-    if (p != null) { setState(() => _fecha = p); await _cargarVenta(); }
+    if (p != null) { 
+      setState(() => _fecha = p); 
+      await _cargarVenta(); 
+    }
   }
 
   // --- UI Helpers ---
@@ -140,7 +153,6 @@ class _VentaPageState extends State<VentaPage> {
           Text("Total: ${_fmt.format(total)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         ]),
       ),
-      // ... (Encabezado y Filas se mantienen igual)
       _buildTabla(color, filas, mod),
     ]);
   }
@@ -181,7 +193,6 @@ class _VentaPageState extends State<VentaPage> {
     return AppLayout(
       selectedIndex: 2,
       child: Column(children: [
-        // Navbar
         Container(
           color: const Color(0xFF1A237E),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -190,11 +201,7 @@ class _VentaPageState extends State<VentaPage> {
             IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _cargarVenta),
           ]),
         ),
-
-        // Filtros
         _buildFiltros(),
-
-        // Chips de Resumen
         if (!_loading && _filas.isNotEmpty)
           Container(
             color: Colors.grey.shade50,
@@ -210,8 +217,6 @@ class _VentaPageState extends State<VentaPage> {
               ]),
             ),
           ),
-
-        // Lista Principal
         Expanded(child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
