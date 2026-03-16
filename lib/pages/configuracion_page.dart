@@ -23,8 +23,7 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> with SingleTicker
 
   @override
   Widget build(BuildContext context) => AppLayout(
-    selectedIndex: 7,
-    onItemSelected: (i) => i != 7 ? Navigator.pushReplacementNamed(context, ['/menu','/bancas','/venta','/premios','/reportes','/usuarios','/limites','/configuracion'][i]) : null,
+    selectedIndex: 9,
     child: Column(children: [
       Container(
         color: const Color(0xFF1A237E),
