@@ -12,47 +12,81 @@ class UsuariosPage extends StatefulWidget {
 
 class _UsuariosPageState extends State<UsuariosPage> {
   List<dynamic> _usuarios = [];
-  bool _loading = true;
-  String _error = "";
-  String _idPropio = "";
-  List<Banca> _bancas = [];
+  bool   _loading  = true;
+  String _error    = "";
+  String _idPropio  = ""; // id del admin logueado
+  List<Banca> _bancas = [];  // para el selector
 
   @override
   void initState() {
     super.initState();
-    _cargarTodo();
+    _cargar();
+    _cargarIdPropio();
+    _cargarBancas();
   }
 
-  Future<void> _cargarTodo() async {
+  Future<void> _cargarBancas() async {
+    try {
+      final b = await BancasService.obtenerBancas();
+      if (mounted) setState(() => _bancas = b);
+    } catch (_) {}
+  }
+
+  Future<void> _cargarIdPropio() async {
+    final id = await UsuariosService.obtenerIdPropio();
+    if (mounted) setState(() => _idPropio = id ?? '');
+  }
+
+  // SE ELIMINÓ LA LLAVE EXTRA QUE ESTABA AQUÍ
+
+  Future<void> _cargar() async {
     if (!mounted) return;
     setState(() { _loading = true; _error = ""; });
     try {
-      // Problema 2: Cargamos datos y luego disparamos un solo setState
-      final resultados = await Future.wait([
-        UsuariosService.obtenerUsuarios(),
-        UsuariosService.obtenerIdPropio(),
-        BancasService.obtenerBancas(),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _usuarios = resultados[0] as List<dynamic>;
-          _idPropio = (resultados[1] as String?) ?? '';
-          _bancas = resultados[2] as List<Banca>;
-          _loading = false;
-        });
-      }
+      final data = await UsuariosService.obtenerUsuarios();
+      if (mounted) setState(() { _usuarios = data; _loading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
   }
 
   // ── Estadísticas ───────────────────────────────────
-  int get _totalUsuarios => _usuarios.length;
-  int get _activos => _usuarios.where((u) => u['activo'] == true).length;
-  int get _admins => _usuarios.where((u) => u['rol'] == 'admin').length;
+  int get _totalUsuarios  => _usuarios.length;
+  int get _activos   => _usuarios.where((u) => u['activo'] == true).length;
+  int get _inactivos => _usuarios.where((u) => u['activo'] == false).length;
+  int get _admins    => _usuarios.where((u) => u['rol'] == 'admin').length;
 
-  // ── UI Helpers ─────────────────────────────────────
+  // ── Badge rol ──────────────────────────────────────
+  Widget _badgeRol(String? rol) {
+    Color bg = const Color(0xFFE2E3E5);
+    Color fg = const Color(0xFF383D41);
+    switch (rol) {
+      case 'admin':    bg = const Color(0xFFD4EDDA); fg = const Color(0xFF155724); break;
+      case 'central':  bg = const Color(0xFFCCE5FF); fg = const Color(0xFF004085); break;
+      case 'rifero':   bg = const Color(0xFFFFF3CD); fg = const Color(0xFF856404); break;
+      case 'vendedor': bg = const Color(0xFFE8D5FF); fg = const Color(0xFF6A0DAD); break;
+      default:         bg = const Color(0xFFE2E3E5); fg = const Color(0xFF383D41);
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      child: Text(rol ?? '-',
+          style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: 11)));
+  }
+
+  Widget _badgeEstado(bool? activo) {
+    final isActivo = activo == true;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isActivo ? const Color(0xFFD4EDDA) : const Color(0xFFF8D7DA),
+        borderRadius: BorderRadius.circular(10)),
+      child: Text(isActivo ? "Activo" : "Inactivo",
+          style: TextStyle(
+            color: isActivo ? const Color(0xFF155724) : const Color(0xFF721C24),
+            fontWeight: FontWeight.bold, fontSize: 11)));
+  }
+
   Widget _resumenChip(String label, String val, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
@@ -65,40 +99,111 @@ class _UsuariosPageState extends State<UsuariosPage> {
       Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w600)),
     ]));
 
-  // ── Formulario ─────────────────────────────────────
+  Widget _filaUsuario(Map<String, dynamic> u) {
+    final String nombreStr = (u['nombre'] ?? u['username'] ?? u['email'] ?? '?').toString();
+    final String inicial = nombreStr.isNotEmpty ? nombreStr[0].toUpperCase() : '?';
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: Colors.grey.shade200)),
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A237E).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10)),
+            child: Center(
+              child: Text(inicial,
+                style: const TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.bold, fontSize: 16))),
+          ),
+          const SizedBox(width: 10),
+          Expanded(flex: 4, child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(u['nombre'] ?? '-', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 2),
+              Text(u['username'] ?? '-', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            ])),
+          _badgeRol(u['rol']?.toString()),
+          const SizedBox(width: 8),
+          _badgeEstado(u['activo'] as bool?),
+          const SizedBox(width: 8),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _mostrarFormulario(usuario: u),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A237E).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8)),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.edit, size: 16, color: Color(0xFF1A237E)),
+                SizedBox(width: 4),
+                Text("Editar", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
+              ]),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _encabezado() => const Padding(
+    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    child: Row(children: [
+      SizedBox(width: 48),
+      Expanded(flex: 4, child: Text("Nombre / Email", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
+      SizedBox(width: 72, child: Text("Rol", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
+      SizedBox(width: 8),
+      SizedBox(width: 72, child: Text("Estado", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
+      SizedBox(width: 8),
+      SizedBox(width: 72, child: Text("Acción", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
+    ]),
+  );
+
   Future<void> _mostrarFormulario({Map<String, dynamic>? usuario}) async {
-    final esNuevo = usuario == null;
-    final esPropio = !esNuevo && usuario!['id'].toString() == _idPropio;
-    
-    final nombreCtrl = TextEditingController(text: usuario?['nombre'] ?? '');
-    final emailCtrl = TextEditingController(text: usuario?['username'] ?? '');
-    final passCtrl = TextEditingController();
+    final esNuevo   = usuario == null;
+    final esPropio  = !esNuevo && usuario!['id'].toString() == _idPropio;
+    final nombreCtrl    = TextEditingController(text: usuario?['nombre'] ?? '');
+    final emailCtrl     = TextEditingController(text: usuario?['username'] ?? '');
+    final passCtrl      = TextEditingController();
     final passActualCtrl = TextEditingController();
-    
-    String rolSel = usuario?['rol'] ?? 'rifero';
-    bool activoSel = usuario?['activo'] != false;
+    String rolSel     = usuario?['rol'] ?? 'rifero';
+    bool   activoSel  = usuario?['activo'] != false;
+
+    final List<String> todasPaginas = [
+      'bancas','venta','premios','reportes','usuarios',
+      'mensajes','limites','configuracion','contabilidad','descargas'
+    ];
+    final Map<String,String> labelPaginas = {
+      'bancas':'Bancas', 'venta':'Venta', 'premios':'Premios',
+      'reportes':'Reportes', 'usuarios':'Usuarios', 'mensajes':'Mensajes',
+      'limites':'Límites', 'configuracion':'Configuración',
+      'contabilidad':'Contabilidad', 'descargas':'Descargas',
+    };
     Set<String> paginasSel = {};
 
-    // Problema 3 y 4: Manejo seguro de bancas y nulos
-    String? bancaIdSel;
-    final rawBancas = usuario?['bancas'];
-    if (rawBancas is List && rawBancas.isNotEmpty) {
-      for (var b in rawBancas) {
-        if (b != null && b['banca_id'] != null) {
-          bancaIdSel = b['banca_id'].toString();
-          break;
-        }
-      }
-    }
-
-    if (!esNuevo) {
-      final id = usuario!['id']?.toString();
+    if (!esNuevo && usuario != null) {
+      final id = usuario['id']?.toString();
       if (id != null && (rolSel == 'central' || rolSel == 'rifero')) {
         try {
           final pags = await UsuariosService.obtenerPaginas(id);
           paginasSel = Set<String>.from(pags);
         } catch (_) {}
       }
+    }
+
+    String? bancaIdSel;
+    final bancasUsuario = usuario?['bancas'] as List?;
+    if (bancasUsuario != null && bancasUsuario.isNotEmpty) {
+      final primera = bancasUsuario.firstWhere(
+        (b) => b != null && b['banca_id'] != null,
+        orElse: () => null);
+      if (primera != null) bancaIdSel = primera['banca_id']?.toString();
     }
 
     if (!mounted) return;
@@ -108,127 +213,271 @@ class _UsuariosPageState extends State<UsuariosPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => AlertDialog(
           title: Text(esNuevo ? "Nuevo Usuario" : "Editar Usuario"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: nombreCtrl, decoration: const InputDecoration(labelText: "Nombre")),
-                TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Username")),
-                if (!esNuevo && esPropio)
-                  TextField(controller: passActualCtrl, decoration: const InputDecoration(labelText: "Contraseña actual"), obscureText: true),
-                TextField(controller: passCtrl, decoration: InputDecoration(labelText: esNuevo ? "Contraseña" : "Nueva contraseña (opcional)"), obscureText: true),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: rolSel,
-                  decoration: const InputDecoration(labelText: "Rol"),
-                  items: ['admin', 'central', 'rifero', 'vendedor'].map((r) => DropdownMenuItem(value: r, child: Text(r.toUpperCase()))).toList(),
-                  onChanged: (v) => setModalState(() => rolSel = v!),
-                ),
-                if (rolSel == 'vendedor')
-                  DropdownButtonFormField<String?>(
-                    value: _bancas.any((b) => b.id == bancaIdSel) ? bancaIdSel : null,
-                    decoration: const InputDecoration(labelText: "Banca"),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text("Sin banca")),
-                      ..._bancas.map((b) => DropdownMenuItem(value: b.id, child: Text(b.nombre)))
-                    ],
-                    onChanged: (v) => setModalState(() => bancaIdSel = v),
-                  ),
-                if (!esNuevo) SwitchListTile(title: const Text("Activo"), value: activoSel, onChanged: (v) => setModalState(() => activoSel = v)),
+          content: SingleChildScrollView(child: Column(
+            mainAxisSize: MainAxisSize.min, children: [
+              TextField(controller: nombreCtrl, decoration: const InputDecoration(labelText: "Nombre completo")),
+              const SizedBox(height: 8),
+              TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Username"), keyboardType: TextInputType.text),
+              const SizedBox(height: 8),
+              if (esNuevo) ...[
+                TextField(
+                  controller: passCtrl,
+                  decoration: const InputDecoration(labelText: "Contraseña"),
+                  obscureText: true),
+                const SizedBox(height: 8),
+              ] else ...[
+                if (esPropio) ...[
+                  TextField(
+                    controller: passActualCtrl,
+                    decoration: InputDecoration(
+                      labelText: "Contraseña actual",
+                      hintText: "Requerida para cambiar contraseña",
+                      prefixIcon: const Icon(Icons.lock_outline, size: 18),
+                      filled: true,
+                      fillColor: Colors.amber.shade50,
+                      border: const OutlineInputBorder()),
+                    obscureText: true),
+                  const SizedBox(height: 8),
+                ],
+                TextField(
+                  controller: passCtrl,
+                  decoration: InputDecoration(
+                    labelText: "Nueva contraseña",
+                    hintText: "Dejar vacío para no cambiar",
+                    prefixIcon: const Icon(Icons.lock, size: 18)),
+                  obscureText: true),
+                const SizedBox(height: 8),
               ],
-            ),
-          ),
+              DropdownButtonFormField<String>(
+                value: rolSel,
+                decoration: const InputDecoration(labelText: "Rol"),
+                items: const [
+                  DropdownMenuItem(value: 'admin',    child: Text("Admin")),
+                  DropdownMenuItem(value: 'central',  child: Text("Central")),
+                  DropdownMenuItem(value: 'rifero',   child: Text("Rifero")),
+                  DropdownMenuItem(value: 'vendedor', child: Text("Vendedor")),
+                ],
+                onChanged: (v) => setModalState(() => rolSel = v!),
+              ),
+              if (rolSel == 'vendedor') ...[ 
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String?>(
+                  value: _bancas.any((b) => b.id == bancaIdSel) ? bancaIdSel : null,
+                  decoration: InputDecoration(
+                    labelText: "Banca asignada",
+                    hintText: "Seleccionar banca",
+                    prefixIcon: const Icon(Icons.storefront, size: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text("-- Sin banca --",
+                            style: TextStyle(color: Colors.grey))),
+                    ..._bancas.map((b) => DropdownMenuItem<String?>(
+                        value: b.id,
+                        child: Text(b.nombre))),
+                  ],
+                  onChanged: (v) => setModalState(() => bancaIdSel = v),
+                ),
+              ],
+              if (rolSel == 'central' || rolSel == 'rifero') ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Páginas permitidas',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                        color: Colors.grey, letterSpacing: 0.5))),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6, runSpacing: 4,
+                  children: todasPaginas.map((p) {
+                    final sel = paginasWrapper.contains(p);
+                    return FilterChip(
+                      label: Text(labelPaginas[p] ?? p,
+                          style: TextStyle(fontSize: 12,
+                              color: sel ? Colors.white : Colors.black87)),
+                      selected: sel,
+                      onSelected: (v) => setModalState(() {
+                        if (v) paginasWrapper.add(p); else paginasWrapper.remove(p);
+                      }),
+                      selectedColor: const Color(0xFF1A237E),
+                      checkmarkColor: Colors.white,
+                      backgroundColor: Colors.grey.shade100,
+                      side: BorderSide(
+                          color: sel ? const Color(0xFF1A237E) : Colors.grey.shade300),
+                    );
+                  }).toList(),
+                ),
+              ],
+              if (!esNuevo) ...[
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: const Text("Usuario activo"),
+                  value: activoSel,
+                  activeColor: const Color(0xFF1A237E),
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (v) => setModalState(() => activoSel = v),
+                ),
+              ],
+            ],
+          )),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancelar")),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white),
               onPressed: () async {
+                final nombre = nombreCtrl.text.trim();
+                final username = emailCtrl.text.trim();
+                final pass = passCtrl.text.trim();
+                if (nombre.isEmpty || username.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nombre y username son requeridos"), backgroundColor: Colors.orange));
+                  return;
+                }
+                if (esNuevo && pass.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La contraseña es requerida"), backgroundColor: Colors.orange));
+                  return;
+                }
+                
+                final passActual = passActualCtrl.text.trim();
+                if (!esNuevo && esPropio && pass.isNotEmpty && passActual.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Debes ingresar tu contraseña actual"), backgroundColor: Colors.orange));
+                  return;
+                }
+
+                Navigator.pop(ctx);
                 try {
                   if (esNuevo) {
-                    final res = await UsuariosService.crearUsuarioConRespuesta(username: emailCtrl.text, nombre: nombreCtrl.text, password: passCtrl.text, rol: rolSel);
-                    final nuevoId = res['usuario']?['id']?.toString();
+                    final nuevo = await UsuariosService.crearUsuarioConRespuesta(
+                        username: username, nombre: nombre, password: pass, rol: rolSel);
+                    
+                    final nuevoId = nuevo['usuario']?['id']?.toString();
                     if (nuevoId != null) {
-                      if (rolSel == 'vendedor' && bancaIdSel != null) await UsuariosService.asignarBanca(usuarioId: nuevoId, bancaId: bancaIdSel!);
+                      if ((rolSel == 'central' || rolSel == 'rifero') && paginasWrapper.isNotEmpty) {
+                        await UsuariosService.guardarPaginas(nuevoId, paginasWrapper.toList());
+                      }
+                      if (rolSel == 'vendedor' && bancaIdSel != null) {
+                        await UsuariosService.asignarBanca(usuarioId: nuevoId, bancaId: bancaIdSel!);
+                      }
                     }
                   } else {
-                    final id = usuario!['id'].toString();
-                    await UsuariosService.editarUsuario(id, nombre: nombreCtrl.text, username: emailCtrl.text, rol: rolSel, activo: activoSel, password: passCtrl.text.isEmpty ? null : passCtrl.text, passwordActual: passActualCtrl.text.isEmpty ? null : passActualCtrl.text);
-                    if (rolSel == 'vendedor' && bancaIdSel != null) await UsuariosService.asignarBanca(usuarioId: id, bancaId: bancaIdSel!);
+                    await UsuariosService.editarUsuario(
+                      usuario!['id'].toString(),
+                      nombre:          nombre,
+                      username:        username,
+                      rol:             rolSel,
+                      activo:          activoSel,
+                      password:        pass.isNotEmpty ? pass : null,
+                      passwordActual:  (esPropio && pass.isNotEmpty) ? passActual : null,
+                    );
+                    if (rolSel == 'vendedor' && bancaIdSel != null) {
+                      await UsuariosService.asignarBanca(usuarioId: usuario['id'].toString(), bancaId: bancaIdSel!);
+                    }
+                    // Guardar páginas para central y rifero
+                    if (rolSel == 'central' || rolSel == 'rifero') {
+                      await UsuariosService.guardarPaginas(
+                          usuario!['id'].toString(), paginasWrapper.toList());
+                    }
                   }
-                  if (mounted) Navigator.pop(ctx);
-                  _cargarTodo();
-                } catch (e) {
-                  // Problema 5: Snackbar seguro
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(esNuevo ? "Usuario creado ✓" : "Usuario actualizado ✓"), backgroundColor: Colors.green));
+                    await _cargar();
                   }
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
                 }
               },
-              child: const Text("Guardar"),
-            )
+              child: Text(esNuevo ? "Crear" : "Guardar")),
           ],
         ),
       ),
     );
-
-    // Problema 6: Liberación de controladores
-    nombreCtrl.dispose();
-    emailCtrl.dispose();
-    passCtrl.dispose();
-    passActualCtrl.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AppLayout(
       selectedIndex: 6,
-      child: Column(
-        children: [
+      child: Column(children: [
+        Container(
+          color: const Color(0xFF1A237E),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Row(children: [
+            const Expanded(child: Text("Usuarios", style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold))),
+            IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _cargar),
+          ]),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+          child: Row(children: [
+            const Spacer(),
+            ElevatedButton.icon(
+              onPressed: () => _mostrarFormulario(),
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text("Nuevo Usuario", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF007BFF),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0)),
+          ]),
+        ),
+        if (!_loading && _usuarios.isNotEmpty)
           Container(
-            color: const Color(0xFF1A237E),
-            padding: const EdgeInsets.all(16),
+            color: Colors.grey.shade50,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(children: [
-              const Expanded(child: Text("Gestión de Usuarios", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-              IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _cargarTodo),
-              IconButton(icon: const Icon(Icons.add_circle, color: Colors.white), onPressed: () => _mostrarFormulario()),
+              _resumenChip("Total", "$_totalUsuarios", Colors.blueGrey),
+              const SizedBox(width: 6),
+              _resumenChip("Activos", "$_activos", const Color(0xFF28A745)),
+              const SizedBox(width: 6),
+              _resumenChip("Inactivos","$_inactivos", const Color(0xFFDC3545)),
+              const SizedBox(width: 6),
+              _resumenChip("Admins", "$_admins", const Color(0xFF1A237E)),
             ]),
           ),
-          if (!_loading)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Wrap(
-                spacing: 8,
-                children: [
-                  _resumenChip("Total", "$_totalUsuarios", Colors.blue),
-                  _resumenChip("Activos", "$_activos", Colors.green),
-                ],
-              ),
-            ),
-          Expanded(
-            child: _loading 
-              ? const Center(child: CircularProgressIndicator()) 
-              : ListView.builder(
-                  itemCount: _usuarios.length,
-                  itemBuilder: (ctx, i) {
-                    final u = _usuarios[i];
-                    // Problema 1: Manejo seguro de iniciales
-                    final nombreRaw = (u['nombre'] ?? '').toString();
-                    final inicial = nombreRaw.isNotEmpty ? nombreRaw[0].toUpperCase() : '?';
-
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: const Color(0xFF1A237E).withOpacity(0.1),
-                        child: Text(inicial),
-                      ),
-                      title: Text(nombreRaw.isEmpty ? (u['username'] ?? 'Sin nombre') : nombreRaw),
-                      subtitle: Text("${u['rol']}"),
-                      trailing: const Icon(Icons.edit),
-                      onTap: () => _mostrarFormulario(usuario: u),
-                    );
-                  },
-                ),
-          ),
-        ],
-      ),
+        if (!_loading && _usuarios.isNotEmpty) _encabezado(),
+        Expanded(child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error.isNotEmpty
+            ? _errorView()
+            : _usuarios.isEmpty
+              ? _emptyView()
+              : RefreshIndicator(
+                  onRefresh: _cargar,
+                  child: ListView.builder(
+                    itemCount: _usuarios.length,
+                    itemBuilder: (_, i) => _filaUsuario(_usuarios[i] as Map<String, dynamic>),
+                  ))),
+      ]),
     );
   }
+
+  Widget _errorView() => Center(child: Column(
+    mainAxisAlignment: MainAxisAlignment.center, children: [
+      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+      const SizedBox(height: 10),
+      Text(_error, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+      const SizedBox(height: 14),
+      ElevatedButton.icon(onPressed: _cargar, icon: const Icon(Icons.refresh), label: const Text("Reintentar")),
+    ]));
+
+  Widget _emptyView() => Center(child: Column(
+    mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(Icons.people_outline, size: 56, color: Colors.grey.shade300),
+      const SizedBox(height: 14),
+      Text("No hay usuarios registrados", style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
+      const SizedBox(height: 20),
+      ElevatedButton.icon(
+        onPressed: () => _mostrarFormulario(),
+        icon: const Icon(Icons.add),
+        label: const Text("Nuevo Usuario"),
+        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007BFF), foregroundColor: Colors.white)),
+    ]));
 }
