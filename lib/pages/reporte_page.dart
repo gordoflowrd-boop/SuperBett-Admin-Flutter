@@ -18,7 +18,10 @@ class _ReportesPageState extends State<ReportesPage> {
   DateTime _fecha  = DateTime.now();
 
   @override
-  void initState() { super.initState(); _cargar(); }
+  void initState() { 
+    super.initState(); 
+    _cargar(); 
+  }
 
   String get _fechaStr => DateFormat('yyyy-MM-dd').format(_fecha);
   final _fmt = NumberFormat('#,##0.00');
@@ -32,20 +35,16 @@ class _ReportesPageState extends State<ReportesPage> {
   double get _totalPremios   => _resumen.fold(0.0, (s, r) => s + _toDouble(r['total_premios']));
   double get _totalResultado => _resumen.fold(0.0, (s, r) => s + _toDouble(r['resultado']));
 
-  // --- Navegación Sincronizada ---
-  }
-
+  // --- Lógica de Carga ---
   Future<void> _cargar() async {
     setState(() { _loading = true; _error = ""; });
     try {
       if (_tipoVista == "ventas") {
         final data = await ReportesService.obtenerResumen(_fechaStr);
-        // resumen_admin_dia devuelve una lista de bancas [{banca, total_venta,...}]
         List<dynamic> lista = [];
         if (data is List) {
           lista = data;
         } else if (data is Map && data.isNotEmpty) {
-          // Si la función devuelve un solo objeto (ej: totales globales)
           lista = [data];
         }
         setState(() { _resumen = lista; _loading = false; });
@@ -69,7 +68,10 @@ class _ReportesPageState extends State<ReportesPage> {
       firstDate: DateTime(2024),
       lastDate: DateTime.now().add(const Duration(days: 1)),
     );
-    if (p != null) { setState(() => _fecha = p); _cargar(); }
+    if (p != null) { 
+      setState(() => _fecha = p); 
+      _cargar(); 
+    }
   }
 
   // --- Widgets de UI ---
@@ -137,18 +139,16 @@ class _ReportesPageState extends State<ReportesPage> {
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(bottom: BorderSide(color: Color(0xFFE0E0E0)))),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Fila 1: tabs
             Row(children: [
               _tabToggle("Ventas", "ventas"),
               const SizedBox(width: 8),
               _tabToggle("Ganadores", "ganadores"),
             ]),
             const SizedBox(height: 8),
-            // Fila 2: fecha + hoy
             Row(children: [
               GestureDetector(
                 onTap: _pickFecha,
