@@ -135,5 +135,18 @@ class UsuariosService {
     if (passwordActual != null) body['password_actual']  = passwordActual;
     await _fetch('/admin/usuarios/$id', method: 'PATCH', body: body);
   }
+
+  // Obtener páginas asignadas
+  static Future<List<String>> obtenerPaginas(String id) async {
+    final data = await _fetch('/admin/usuarios/$id/paginas');
+    return List<String>.from(data['paginas'] ?? []);
+  }
+
+  // Guardar páginas asignadas (reemplaza todas)
+  static Future<void> guardarPaginas(String id, List<String> paginas) async {
+    await _fetch('/admin/usuarios/$id/paginas',
+        method: 'PUT', body: {'paginas': paginas});
+  }
 }
+
 
