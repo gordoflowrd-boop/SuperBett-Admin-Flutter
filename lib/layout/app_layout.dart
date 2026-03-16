@@ -78,16 +78,32 @@ class _AppLayoutState extends State<AppLayout> {
     final usuario = jsonDecode(rawUser) as Map<String, dynamic>;
     final rol     = usuario['rol']?.toString()    ?? 'admin';
     final nombre  = usuario['nombre']?.toString() ?? usuario['username']?.toString() ?? '';
+    final paginasRaw = usuario['paginas'];
+    final List<String> paginas = paginasRaw != null
+        ? List<String>.from(paginasRaw as List)
+        : [];
 
     setState(() {
       _rol      = rol;
       _nombre   = nombre;
-      _visibles = _navItemsParaRol(rol);
+      _visibles = _navItemsParaRol(rol, paginas);
     });
   }
 
-  // Filtra los items según rol
-  List<_NavItem> _navItemsParaRol(String rol) {
+  // Filtra los items según rol y paginas asignadas
+  List<_NavItem> _navItemsParaRol(String rol, List<String> paginas) {
+    if (rol == 'admin') {
+      // Admin ve todo siempre
+      return _navItems.where((item) => item.roles.contains(rol)).toList();
+    }
+    if (paginas.isNotEmpty) {
+      // Usar permisos del token — siempre incluir dashboard
+      return _navItems.where((item) =>
+        paginas.contains(item.ruta.replaceAll('/', '')) ||
+        item.ruta == '/dashboard'
+      ).toList();
+    }
+    // Fallback por rol
     return _navItems.where((item) => item.roles.contains(rol)).toList();
   }
 
