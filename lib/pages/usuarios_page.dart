@@ -37,15 +37,16 @@ class _UsuariosPageState extends State<UsuariosPage> {
     if (mounted) setState(() => _idPropio = id ?? '');
   }
 
-  }
+  // SE ELIMINÓ LA LLAVE EXTRA QUE ESTABA AQUÍ
 
   Future<void> _cargar() async {
+    if (!mounted) return;
     setState(() { _loading = true; _error = ""; });
     try {
       final data = await UsuariosService.obtenerUsuarios();
-      setState(() { _usuarios = data; _loading = false; });
+      if (mounted) setState(() { _usuarios = data; _loading = false; });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
   }
 
@@ -99,7 +100,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
     ]));
 
   Widget _filaUsuario(Map<String, dynamic> u) {
-    final String nombreStr = (u['nombre'] ?? u['email'] ?? '?').toString();
+    final String nombreStr = (u['nombre'] ?? u['username'] ?? u['email'] ?? '?').toString();
     final String inicial = nombreStr.isNotEmpty ? nombreStr[0].toUpperCase() : '?';
 
     return Card(
@@ -114,7 +115,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
           Container(
             width: 38, height: 38,
             decoration: BoxDecoration(
-              color: Color(0xFF1A237E).withOpacity(0.1),
+              color: const Color(0xFF1A237E).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10)),
             child: Center(
               child: Text(inicial,
@@ -137,7 +138,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Color(0xFF1A237E).withOpacity(0.08),
+                color: const Color(0xFF1A237E).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8)),
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.edit, size: 16, color: Color(0xFF1A237E)),
@@ -151,16 +152,16 @@ class _UsuariosPageState extends State<UsuariosPage> {
     );
   }
 
-  Widget _encabezado() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+  Widget _encabezado() => const Padding(
+    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: Row(children: [
-      const SizedBox(width: 48),
-      const Expanded(flex: 4, child: Text("Nombre / Email", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
-      SizedBox(width: 72, child: Text("Rol", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
-      const SizedBox(width: 8),
-      SizedBox(width: 72, child: Text("Estado", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
-      const SizedBox(width: 8),
-      SizedBox(width: 72, child: Text("Acción", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
+      SizedBox(width: 48),
+      Expanded(flex: 4, child: Text("Nombre / Email", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey))),
+      SizedBox(width: 72, child: Text("Rol", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
+      SizedBox(width: 8),
+      SizedBox(width: 72, child: Text("Estado", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
+      SizedBox(width: 8),
+      SizedBox(width: 72, child: Text("Acción", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey), textAlign: TextAlign.center)),
     ]),
   );
 
@@ -174,12 +175,11 @@ class _UsuariosPageState extends State<UsuariosPage> {
     String rolSel     = usuario?['rol'] ?? 'rifero';
     bool   activoSel  = usuario?['activo'] != false;
 
-    // Páginas asignadas (para central y rifero)
-    final List<String> _todasPaginas = [
+    final List<String> todasPaginas = [
       'bancas','venta','premios','reportes','usuarios',
       'mensajes','limites','configuracion','contabilidad','descargas'
     ];
-    final Map<String,String> _labelPaginas = {
+    final Map<String,String> labelPaginas = {
       'bancas':'Bancas', 'venta':'Venta', 'premios':'Premios',
       'reportes':'Reportes', 'usuarios':'Usuarios', 'mensajes':'Mensajes',
       'limites':'Límites', 'configuracion':'Configuración',
@@ -187,7 +187,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
     };
     Set<String> paginasSel = {};
 
-    // Cargar páginas existentes si es edición
     if (!esNuevo && usuario != null) {
       final id = usuario['id']?.toString();
       if (id != null && (rolSel == 'central' || rolSel == 'rifero')) {
@@ -198,7 +197,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
       }
     }
 
-    // Banca asignada: buscarla en la lista de bancas del usuario
     String? bancaIdSel;
     final bancasUsuario = usuario?['bancas'] as List?;
     if (bancasUsuario != null && bancasUsuario.isNotEmpty) {
@@ -207,6 +205,8 @@ class _UsuariosPageState extends State<UsuariosPage> {
         orElse: () => null);
       if (primera != null) bancaIdSel = primera['banca_id']?.toString();
     }
+
+    if (!mounted) return;
 
     await showDialog(
       context: context,
@@ -226,7 +226,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
                   obscureText: true),
                 const SizedBox(height: 8),
               ] else ...[
-                // Si es su propia cuenta: pedir contraseña actual primero
                 if (esPropio) ...[
                   TextField(
                     controller: passActualCtrl,
@@ -243,7 +242,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 TextField(
                   controller: passCtrl,
                   decoration: InputDecoration(
-                    labelText: esPropio ? "Nueva contraseña" : "Nueva contraseña",
+                    labelText: "Nueva contraseña",
                     hintText: "Dejar vacío para no cambiar",
                     prefixIcon: const Icon(Icons.lock, size: 18)),
                   obscureText: true),
@@ -260,7 +259,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 ],
                 onChanged: (v) => setModalState(() => rolSel = v!),
               ),
-              // Selector de banca (solo para vendedores)
               if (rolSel == 'vendedor') ...[ 
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String?>(
@@ -284,7 +282,6 @@ class _UsuariosPageState extends State<UsuariosPage> {
                   onChanged: (v) => setModalState(() => bancaIdSel = v),
                 ),
               ],
-              // Permisos de páginas (solo central y rifero)
               if (rolSel == 'central' || rolSel == 'rifero') ...[
                 const SizedBox(height: 12),
                 const Divider(),
@@ -296,10 +293,10 @@ class _UsuariosPageState extends State<UsuariosPage> {
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6, runSpacing: 4,
-                  children: _todasPaginas.map((p) {
+                  children: todasPaginas.map((p) {
                     final sel = paginasSel.contains(p);
                     return FilterChip(
-                      label: Text(_labelPaginas[p] ?? p,
+                      label: Text(labelPaginas[p] ?? p,
                           style: TextStyle(fontSize: 12,
                               color: sel ? Colors.white : Colors.black87)),
                       selected: sel,
@@ -343,36 +340,26 @@ class _UsuariosPageState extends State<UsuariosPage> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La contraseña es requerida"), backgroundColor: Colors.orange));
                   return;
                 }
-                if (esNuevo && pass.length < 6) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La contraseña debe tener al menos 6 caracteres"), backgroundColor: Colors.orange));
-                  return;
-                }
-                // Validación extra: si es propio y quiere cambiar pass, pass actual es requerida
+                
                 final passActual = passActualCtrl.text.trim();
                 if (!esNuevo && esPropio && pass.isNotEmpty && passActual.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text("Debes ingresar tu contraseña actual"),
-                    backgroundColor: Colors.orange));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Debes ingresar tu contraseña actual"), backgroundColor: Colors.orange));
                   return;
                 }
+
                 Navigator.pop(ctx);
                 try {
                   if (esNuevo) {
                     final nuevo = await UsuariosService.crearUsuarioConRespuesta(
                         username: username, nombre: nombre, password: pass, rol: rolSel);
-                    // Asignar banca si es vendedor
-                    // Guardar permisos de páginas
-                  if ((rolSel == 'central' || rolSel == 'rifero') && paginasSel.isNotEmpty) {
-                    final nuevoId2 = nuevo['usuario']?['id']?.toString();
-                    if (nuevoId2 != null) {
-                      await UsuariosService.guardarPaginas(nuevoId2, paginasSel.toList());
-                    }
-                  }
-                  if (rolSel == 'vendedor' && bancaIdSel != null) {
-                      final nuevoId = nuevo['usuario']?['id']?.toString();
-                      if (nuevoId != null) {
-                        await UsuariosService.asignarBanca(
-                            usuarioId: nuevoId, bancaId: bancaIdSel!);
+                    
+                    final nuevoId = nuevo['usuario']?['id']?.toString();
+                    if (nuevoId != null) {
+                      if ((rolSel == 'central' || rolSel == 'rifero') && paginasSel.isNotEmpty) {
+                        await UsuariosService.guardarPaginas(nuevoId, paginasSel.toList());
+                      }
+                      if (rolSel == 'vendedor' && bancaIdSel != null) {
+                        await UsuariosService.asignarBanca(usuarioId: nuevoId, bancaId: bancaIdSel!);
                       }
                     }
                   } else {
@@ -385,16 +372,14 @@ class _UsuariosPageState extends State<UsuariosPage> {
                       password:        pass.isNotEmpty ? pass : null,
                       passwordActual:  (esPropio && pass.isNotEmpty) ? passActual : null,
                     );
-                    // Asignar/cambiar banca si es vendedor
                     if (rolSel == 'vendedor' && bancaIdSel != null) {
-                      await UsuariosService.asignarBanca(
-                          usuarioId: usuario!['id'].toString(), bancaId: bancaIdSel!);
+                      await UsuariosService.asignarBanca(usuarioId: usuario['id'].toString(), bancaId: bancaIdSel!);
                     }
                   }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(esNuevo ? "Usuario creado ✓" : "Usuario actualizado ✓"), backgroundColor: Colors.green));
+                    await _cargar();
                   }
-                  await _cargar();
                 } catch (e) {
                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
                 }
