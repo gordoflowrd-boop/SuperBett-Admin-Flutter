@@ -5,7 +5,7 @@ import 'pages/dashboard_page.dart';
 import 'pages/bancas_page.dart';
 import 'pages/venta_page.dart';
 import 'pages/premios_page.dart';
-import 'pages/reporte_page.dart';
+import 'pages/reporte_page.dart'; // Asegúrate de que dentro de este archivo la clase sea ReportesPage
 import 'pages/usuarios_page.dart';
 import 'pages/riferos_page.dart';
 import 'pages/limites_page.dart';
@@ -33,10 +33,11 @@ class SuperBettApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFF5F5F5),
       ),
-      initialRoute: '/',
+      // CAMBIO: Ahora la App siempre intentará cargar el Login primero
+      initialRoute: '/login', 
       routes: {
-        '/':              (context) => const DashboardPage(),
         '/login':         (context) => const LoginPage(),
+        '/':              (context) => const LoginPage(), // Opcional: que el root también sea login
         '/dashboard':     (context) => const DashboardPage(),
         '/bancas':        (context) => const BancasPage(),
         '/venta':         (context) => const VentaPage(),
