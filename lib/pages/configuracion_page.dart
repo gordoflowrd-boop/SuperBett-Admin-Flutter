@@ -589,11 +589,15 @@ class _TabCentralState extends State<_TabCentral> {
         Uri.parse('$_kApi/admin/central-config'),
         headers: {'Authorization': 'Bearer $t'},
       );
-      final data = jsonDecode(r.body)['config'] as Map<String, dynamic>;
-      _nomCtrl.text    = data['nombre_central'] ?? '';
-      _msgCtrl.text    = data['mensaje_login']  ?? '';
-      _headerCtrl.text = data['ticket_header']  ?? '';
-      _footerCtrl.text = data['ticket_footer']  ?? '';
+      final body = jsonDecode(r.body);
+      if (r.statusCode != 200) {
+        throw Exception(body['error'] ?? 'Error ${r.statusCode}');
+      }
+      final data = (body['config'] ?? {}) as Map<String, dynamic>;
+      _nomCtrl.text    = data['nombre_central']?.toString() ?? '';
+      _msgCtrl.text    = data['mensaje_login']?.toString()  ?? '';
+      _headerCtrl.text = data['ticket_header']?.toString()  ?? '';
+      _footerCtrl.text = data['ticket_footer']?.toString()  ?? '';
       setState(() => _loading = false);
     } catch (e) {
       setState(() { _loading = false; _error = e.toString(); });
