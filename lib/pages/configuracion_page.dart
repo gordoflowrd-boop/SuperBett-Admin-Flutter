@@ -1,4 +1,8 @@
+import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import '../layout/app_layout.dart';
 import '../services/configuracion_service.dart';
@@ -15,7 +19,7 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 4, vsync: this);
+    _tab = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -47,6 +51,7 @@ class _ConfiguracionPageState extends State<ConfiguracionPage> with SingleTicker
           _TabEsquema(tipo: 'precios'),
           _TabEsquema(tipo: 'pagos'),
           _TabJornadas(),
+          const _TabCentral(),
         ],
       )),
     ]),
@@ -539,4 +544,161 @@ class _LoteriaHorarioCardState extends State<_LoteriaHorarioCard> {
       ),
     ]),
   );
+}
+
+// ═════════════════════════════════════════════
+// TAB 5 — CENTRAL
+// ═════════════════════════════════════════════
+class _TabCentral extends StatefulWidget {
+  const _TabCentral();
+  @override State<_TabCentral> createState() => _TabCentralState();
+}
+
+class _TabCentralState extends State<_TabCentral> {
+  final _nomCtrl     = TextEditingController();
+  final _msgCtrl     = TextEditingController();
+  final _headerCtrl  = TextEditingController();
+  final _footerCtrl  = TextEditingController();
+
+  bool   _loading   = true;
+  bool   _guardando = false;
+  String _msg2      = '';
+  String _error     = '';
+
+  static const _kApi = 'https://superbett-api-production.up.railway.app/api';
+
+  @override
+  void initState() { super.initState(); _cargar(); }
+
+  @override
+  void dispose() {
+    _nomCtrl.dispose(); _msgCtrl.dispose();
+    _headerCtrl.dispose(); _footerCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<String> _token() async =>
+      html.window.localStorage['token'] ?? '';
+
+  Future<void> _cargar() async {
+    setState(() { _loading = true; _error = ''; });
+    try {
+      final t = await _token();
+      final r = await http.get(
+        Uri.parse('$_kApi/admin/central-config'),
+        headers: {'Authorization': 'Bearer $t'},
+      );
+      final data = jsonDecode(r.body)['config'] as Map<String, dynamic>;
+      _nomCtrl.text    = data['nombre_central'] ?? '';
+      _msgCtrl.text    = data['mensaje_login']  ?? '';
+      _headerCtrl.text = data['ticket_header']  ?? '';
+      _footerCtrl.text = data['ticket_footer']  ?? '';
+      setState(() => _loading = false);
+    } catch (e) {
+      setState(() { _loading = false; _error = e.toString(); });
+    }
+  }
+
+  Future<void> _guardar() async {
+    setState(() { _guardando = true; _msg2 = ''; _error = ''; });
+    try {
+      final t = await _token();
+      final r = await http.put(
+        Uri.parse('$_kApi/admin/central-config'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $t'},
+        body: jsonEncode({
+          'nombre_central': _nomCtrl.text.trim(),
+          'mensaje_login':  _msgCtrl.text.trim(),
+          'ticket_header':  _headerCtrl.text.trim(),
+          'ticket_footer':  _footerCtrl.text.trim(),
+        }),
+      );
+      if (r.statusCode == 200) {
+        setState(() { _guardando = false; _msg2 = '✓ Guardado'; });
+      } else {
+        throw Exception(jsonDecode(r.body)['error'] ?? 'Error');
+      }
+    } catch (e) {
+      setState(() { _guardando = false; _error = e.toString(); });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _loading
+    ? const Center(child: CircularProgressIndicator())
+    : RefreshIndicator(
+        onRefresh: _cargar,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _campo('Nombre de la central', _nomCtrl,
+                hint: 'Ej: Consorcio Ejemplo', icon: Icons.business_outlined),
+            const SizedBox(height: 14),
+
+            _campo('Mensaje en login', _msgCtrl,
+                hint: 'Sistema exclusivo para...', icon: Icons.message_outlined,
+                maxLines: 2),
+            const SizedBox(height: 14),
+
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200)),
+              child: Row(children: [
+                Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Los textos del ticket se muestran en cada impresión.',
+                    style: TextStyle(fontSize: 12, color: Colors.blue.shade800))),
+              ]),
+            ),
+            const SizedBox(height: 14),
+
+            _campo('Encabezado del ticket', _headerCtrl,
+                hint: 'Texto que aparece arriba del ticket',
+                icon: Icons.vertical_align_top, maxLines: 2),
+            const SizedBox(height: 14),
+
+            _campo('Pie del ticket', _footerCtrl,
+                hint: 'Texto que aparece abajo del ticket',
+                icon: Icons.vertical_align_bottom, maxLines: 2),
+            const SizedBox(height: 24),
+
+            if (_msg2.isNotEmpty) Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(_msg2, style: const TextStyle(
+                  color: Colors.green, fontWeight: FontWeight.bold))),
+            if (_error.isNotEmpty) Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(_error, style: const TextStyle(color: Colors.red))),
+
+            SizedBox(width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _guardando ? null : _guardar,
+                icon: _guardando
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.save_outlined),
+                label: Text(_guardando ? 'Guardando...' : 'Guardar'),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A237E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.all(14)),
+              )),
+          ]),
+        ));
+
+  Widget _campo(String label, TextEditingController ctrl,
+      {String hint = '', IconData icon = Icons.text_fields, int maxLines = 1}) =>
+    TextField(
+      controller: ctrl,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label, hintText: hint,
+        prefixIcon: Icon(icon),
+        border: const OutlineInputBorder(),
+      ),
+    );
 }
