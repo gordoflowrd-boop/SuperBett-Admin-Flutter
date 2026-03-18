@@ -259,7 +259,6 @@ class _EditorPagos extends StatefulWidget {
 }
 
 class _EditorPagosState extends State<_EditorPagos> {
-  // key: "MODALIDAD_POSICION" -> controller
   final Map<String, TextEditingController> _ctrls = {};
   bool _saving = false;
 
@@ -273,7 +272,6 @@ class _EditorPagosState extends State<_EditorPagos> {
   @override
   void initState() {
     super.initState();
-    // Construir controllers dinámicamente desde lo que devuelve el API
     for (var d in widget.esquema.detalle) {
       final key = '${d.modalidad}_${d.posicion}';
       _ctrls[key] = TextEditingController(text: d.pago == 0 ? '' : d.pago.toString());
@@ -286,18 +284,15 @@ class _EditorPagosState extends State<_EditorPagos> {
     super.dispose();
   }
 
-  // Agrupar detalle por modalidad manteniendo orden Q, P, T, SP
   Map<String, List<DetallePago>> _agrupar() {
     final orden = ['Q', 'P', 'T', 'SP'];
     final Map<String, List<DetallePago>> grupos = {};
     for (var d in widget.esquema.detalle) {
       grupos.putIfAbsent(d.modalidad, () => []).add(d);
     }
-    // Ordenar posiciones dentro de cada grupo
     for (var lista in grupos.values) {
       lista.sort((a, b) => a.posicion.compareTo(b.posicion));
     }
-    // Devolver en orden conocido primero, luego el resto
     final result = <String, List<DetallePago>>{};
     for (var mod in orden) {
       if (grupos.containsKey(mod)) result[mod] = grupos[mod]!;
@@ -593,7 +588,13 @@ class _TabCentralState extends State<_TabCentral> {
       if (r.statusCode != 200) {
         throw Exception(body['error'] ?? 'Error ${r.statusCode}');
       }
-      final data = (body['config'] ?? {}) as Map<String, dynamic>;
+
+      // ✅ FIX: cast seguro que funciona en release/minified mode
+      final raw = body['config'];
+      final data = raw != null
+          ? Map<String, dynamic>.from(raw as Map)
+          : <String, dynamic>{};
+
       _nomCtrl.text    = data['nombre_central']?.toString() ?? '';
       _msgCtrl.text    = data['mensaje_login']?.toString()  ?? '';
       _headerCtrl.text = data['ticket_header']?.toString()  ?? '';
