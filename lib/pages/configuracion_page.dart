@@ -1,6 +1,4 @@
 import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
@@ -573,13 +571,10 @@ class _TabCentralState extends State<_TabCentral> {
     super.dispose();
   }
 
-  Future<String> _token() async =>
-      html.window.localStorage['token'] ?? '';
-
   Future<void> _cargar() async {
     setState(() { _loading = true; _error = ''; });
     try {
-      final t = await _token();
+      final t = await ConfiguracionService.token();
       final r = await http.get(
         Uri.parse('$_kApi/admin/central-config'),
         headers: {'Authorization': 'Bearer $t'},
@@ -608,7 +603,7 @@ class _TabCentralState extends State<_TabCentral> {
   Future<void> _guardar() async {
     setState(() { _guardando = true; _msg2 = ''; _error = ''; });
     try {
-      final t = await _token();
+      final t = await ConfiguracionService.token();
       final r = await http.put(
         Uri.parse('$_kApi/admin/central-config'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $t'},
