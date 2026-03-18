@@ -15,7 +15,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   final _userFocus = FocusNode();
   final _passFocus = FocusNode();
 
-  String  _msg       = "";
+  String  _msg           = "";
+  String  _nombreCentral = 'SuperBett';
+  String  _mensajeLogin  = '';
   bool    _loading   = false;
   bool    _showPass  = false;
   bool    _hasError  = false;
@@ -28,6 +30,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    _cargarConfig();
     _shakeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
     _shakeAnim = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: -10.0), weight: 1),
@@ -46,6 +49,19 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     _userFocus.dispose();
     _passFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _cargarConfig() async {
+    try {
+      final r = await http.get(Uri.parse('$_api/config/central'));
+      if (r.statusCode == 200) {
+        final data = jsonDecode(r.body)['config'] as Map<String, dynamic>;
+        setState(() {
+          _nombreCentral = data['nombre_central']?.toString() ?? 'SuperBett';
+          _mensajeLogin  = data['mensaje_login']?.toString()  ?? '';
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _login() async {
@@ -113,13 +129,20 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               Padding(
                 padding: EdgeInsets.fromLTRB(24, isWide ? 16 : 24, 24, 0),
                 child: Column(children: [
-                  const Text("SuperBett",
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900,
+                  Text(_nombreCentral,
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900,
                         color: Color(0xFF1A237E), letterSpacing: 0.5)),
                   const SizedBox(height: 2),
                   Text("Panel Administrativo",
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade500,
                         letterSpacing: 0.8, fontWeight: FontWeight.w500)),
+                  if (_mensajeLogin.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(_mensajeLogin,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12,
+                          color: Color(0xFF1A237E), fontStyle: FontStyle.italic)),
+                  ],
                 ]),
               ),
 
